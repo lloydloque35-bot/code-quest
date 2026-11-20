@@ -1,5 +1,5 @@
 {
-  "name": "Code Quest Demo",
+  "name": "Code Quest",
   "short_name": "Code Quest",
   "description": "Write real code to guide Pixel the robot through the Sunken Archive.",
   "start_url": "./",
