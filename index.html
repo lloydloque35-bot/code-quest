@@ -1,0 +1,1855 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Code Quest Demo</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#2f1913">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Code Quest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<script>if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) { addEventListener('load', function () { try { navigator.serviceWorker.register('sw.js').catch(function () {}); } catch (e) {} }); }</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Pixelify+Sans:wght@500;700&family=Rubik:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* VOICE occasion: a hard, flashy adventure game where you learn to code by guiding a robot
+   IDEA a handheld cartridge dug out of a sunken sandstone archive: clay housing, lit screen, a code slate
+   PICTURE the live world: torch-lit sandstone over a dark chasm, crystals, spike traps, an arch gate, Pixel
+   COLOUR clay umber ground, sandstone, turquoise crystal for "good", coral for action, red hearts for danger
+   TYPE Pixelify Sans for titles, Rubik for text, JetBrains Mono for code
+   LAYOUT title screen first; then laptop: world + story left, lesson + code right; phone: world, story, code, fixed run bar */
+:root{color-scheme:dark;--bg:#2f1913;--panel:#3d2219;--panel2:#4b2a1e;--line:#6b3d2a;--ink:#f8ebd6;--muted:#d4b79c;--sand:#e6c28a;--tq:#3fe3d2;--coral:#ff7650;--code:#1c0d09;--err:#ff8b78;--gold:#ffd27a;--heart:#ff5a4e}
+:root[data-theme=light],:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+[hidden]{display:none!important}
+html{background:var(--bg)}
+body{margin:0;background:var(--bg) radial-gradient(110% 50% at 50% -8%,#512a1b 0,rgba(81,42,27,0) 70%) no-repeat;color:var(--ink);font:16px/1.55 Rubik,system-ui,sans-serif;overflow-x:clip}
+button{font:inherit}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.top{max-width:1240px;margin:0 auto;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.brand{display:flex;align-items:center;gap:10px;background:none;border:0;color:var(--ink);cursor:pointer;padding:0;border-radius:12px}
+.brand svg{width:42px;height:42px;flex:none}
+.bname{font:700 clamp(26px,3.6vw,34px)/1.05 'Pixelify Sans',Rubik,sans-serif;letter-spacing:-.01em;white-space:nowrap}
+.topr{display:flex;gap:10px;align-items:center}
+.total{display:inline-flex;align-items:center;gap:4px;font-weight:600;color:var(--sand);white-space:nowrap}
+.total svg{width:20px;height:20px;fill:var(--gold)}
+.app{max-width:1240px;margin:0 auto;padding:0 16px 40px;display:grid;grid-template-columns:minmax(0,1.18fr) minmax(0,1fr);gap:18px;align-items:start}
+.col{display:flex;flex-direction:column;gap:14px}
+.housing{padding:10px;border-radius:26px;background:linear-gradient(#64382a,#3d1f16);box-shadow:inset 0 2px 0 rgba(255,220,180,.18),inset 0 -3px 0 rgba(0,0,0,.25),0 24px 40px -24px #000}
+.housing.shake{animation:sh .42s}
+@keyframes sh{0%,100%{transform:none}20%{transform:translate(-7px,2px)}40%{transform:translate(6px,-2px)}60%{transform:translate(-4px,1px)}80%{transform:translate(3px,0)}}
+.stage{position:relative;border-radius:16px;overflow:hidden;background:#150906;height:320px;box-shadow:inset 0 0 0 2px #24100a}
+.stage canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.stage::after{content:'';position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(0,0,0,.09) 0 1px,transparent 1px 3px)}
+.flash{position:absolute;inset:0;pointer-events:none;opacity:0;background:radial-gradient(circle,rgba(255,60,40,0) 35%,rgba(255,50,30,.6))}
+.flash.on{animation:fl .7s ease-out}
+@keyframes fl{0%{opacity:1}100%{opacity:0}}
+.hud{position:absolute;top:10px;left:10px;right:10px;display:flex;gap:8px;pointer-events:none;flex-wrap:wrap;z-index:2}
+.pill{background:rgba(22,10,6,.82);border:1px solid rgba(63,227,210,.4);padding:4px 12px;border-radius:999px;font-size:14px;font-weight:600;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.pill svg{width:14px;height:14px;fill:var(--tq)}
+.hearts{border-color:rgba(255,90,78,.55);gap:3px;padding:4px 10px}
+.hrt svg{width:19px;height:19px;fill:var(--heart);display:block;filter:drop-shadow(0 0 4px rgba(255,90,78,.6))}
+.hrt.gone svg{fill:#4e2c24;filter:none}
+.hrt.break{animation:hb .8s ease-out}
+@keyframes hb{0%{transform:scale(1)}25%{transform:scale(1.8) rotate(-14deg)}55%{transform:scale(.7) rotate(12deg)}100%{transform:none}}
+#room{margin-left:auto;border-color:rgba(230,194,138,.5)}
+.ccard{position:absolute;left:50%;top:50%;z-index:3;transform:translate(-50%,-50%);text-align:center;opacity:0;pointer-events:none;padding:16px 30px 18px;border-radius:16px;background:rgba(18,8,5,.86);border:2px solid var(--sand);box-shadow:0 0 40px rgba(63,227,210,.25)}
+.ccard span{display:block;color:var(--sand);font-size:15px;font-weight:600}
+.ccard b{display:block;font:700 clamp(28px,5vw,46px)/1.05 'Pixelify Sans',Rubik,sans-serif;white-space:nowrap;color:#fff3dc;text-shadow:0 0 18px rgba(63,227,210,.6)}
+.ccard.show{animation:cc 2.8s ease both}
+@keyframes cc{0%{opacity:0;transform:translate(-50%,-38%) scale(.85)}12%{opacity:1;transform:translate(-50%,-50%) scale(1)}78%{opacity:1;transform:translate(-50%,-50%)}100%{opacity:0;transform:translate(-50%,-58%)}}
+.leds{display:flex;justify-content:flex-end;gap:8px;padding:8px 8px 0}
+.leds i{width:9px;height:9px;border-radius:50%;background:#2a120b;box-shadow:inset 0 1px 2px #000}
+.leds .pw{background:var(--tq);box-shadow:0 0 8px var(--tq)}
+.running .leds .rn{background:var(--gold);box-shadow:0 0 8px var(--gold)}
+.console{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;border-radius:14px;background:var(--panel);border:1px solid var(--line);min-height:52px;font-size:15.5px}
+.console::before{content:'';flex:none;width:10px;height:10px;border-radius:50%;margin-top:7px;background:var(--muted)}
+.console.run::before{background:var(--sand)}
+.console.err{border-color:var(--err);background:#4a1f17}
+.console.err::before{background:var(--err)}
+.console em{color:var(--muted);font-style:normal}
+.lost{color:var(--heart);white-space:nowrap}
+.lnk{flex:none;font:700 13px/1 'JetBrains Mono',monospace;background:var(--err);color:#2a0d07;border:0;border-radius:6px;padding:6px 8px;cursor:pointer}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:18px 20px}
+.shead{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.chap{margin:0;color:var(--muted);font-size:14px}
+.nav{display:flex;gap:6px;flex:none}
+.iconbtn{width:44px;height:44px;display:grid;place-items:center;border-radius:12px;border:2px solid var(--line);background:transparent;color:var(--ink);cursor:pointer;flex:none}
+.iconbtn svg{width:20px;height:20px;fill:currentColor}
+.iconbtn:disabled{opacity:.35;cursor:not-allowed}
+h2{font:700 clamp(26px,3.4vw,34px)/1.05 'Pixelify Sans',Rubik,sans-serif;margin:6px 0 10px;letter-spacing:-.01em;text-wrap:balance}
+#ltext{margin:0 0 14px;max-width:64ch}
+.goal{display:flex;gap:12px;align-items:center;padding:12px 14px;border-radius:12px;background:rgba(63,227,210,.08);border:1px solid rgba(63,227,210,.32)}
+.goal>svg{flex:none;width:30px;height:30px}
+.goal b{display:block;font-weight:600}
+.best{font-size:14px;color:var(--muted);display:flex;align-items:center;gap:4px}
+.best svg,.stars svg{width:16px;height:16px;fill:#6a3c2b;display:block}
+.on svg{fill:var(--gold)!important}
+.learn{background:var(--sand);color:#2a140e;border-radius:18px;padding:16px 18px;box-shadow:inset 0 -5px 0 #c99e66}
+.learn h3{margin:0 0 4px;font:700 21px/1.2 'Pixelify Sans',Rubik,sans-serif}
+.learn p{margin:0 0 10px}
+.learn pre{margin:0;background:var(--code);color:var(--ink);border-radius:10px;padding:10px 14px;font:15px/1.55 'JetBrains Mono',monospace;overflow-x:auto}
+.edcard{background:var(--code);border:1px solid var(--line);border-radius:18px;overflow:hidden}
+.edcard:focus-within{box-shadow:0 0 0 3px rgba(63,227,210,.45)}
+.bar{display:flex;align-items:center;gap:8px;padding:10px;background:#2a140e;border-bottom:1px solid var(--line)}
+.speed{display:flex;align-items:center;gap:8px;margin-left:auto;color:var(--muted);font-size:14px}
+.ed{display:flex;font:16px/24px 'JetBrains Mono',ui-monospace,Menlo,monospace}
+.gut{flex:none;padding:13px 6px 13px 10px;text-align:right;color:#7d5a48;user-select:none;min-width:2.8em}
+.gut span{display:block;height:24px}
+.gut .run{color:var(--sand);font-weight:700}
+.gut .err{color:var(--err);font-weight:700}
+.cw{position:relative;flex:1}
+#hl,#code{position:absolute;inset:0;margin:0;padding:13px 14px 13px 8px;font:inherit;white-space:pre;tab-size:4;border:0;letter-spacing:0;line-height:24px}
+#hl{overflow:hidden;pointer-events:none;color:var(--ink)}
+#hl .l{display:block;height:24px;margin-left:-8px;padding-left:8px;width:max-content;min-width:calc(100% + 8px)}
+#hl .run{background:rgba(230,194,138,.17);box-shadow:inset 3px 0 0 var(--sand)}
+#hl .err{background:rgba(255,139,120,.2);box-shadow:inset 3px 0 0 var(--err)}
+#code{width:100%;height:100%;background:transparent;color:transparent;caret-color:var(--ink);resize:none;outline:none;overflow-x:auto;overflow-y:hidden}
+#code::selection{background:rgba(63,227,210,.3)}
+i{font-style:normal}
+i.k{color:var(--coral);font-weight:700}
+i.a{color:var(--tq)}
+i.q{color:var(--gold)}
+i.n{color:#ffa3c4}
+i.f{color:#a9d4ff}
+i.c{color:#a58470;font-style:italic}
+.edfoot{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:8px 14px;border-top:1px solid #3a1d14;font-size:14px;color:var(--muted)}
+#mem{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+#mem span:first-child{white-space:nowrap}
+.cells{display:flex;gap:3px}
+.cells i{width:10px;height:12px;border-radius:2px;background:#3a1d14;box-shadow:inset 0 0 0 1px #5a3324}
+.cells i.f{background:var(--tq);box-shadow:none}
+#mem.full .cells i.f{background:var(--gold)}
+#mem.over{color:var(--err)}
+#mem.over .cells i.f{background:var(--err)}
+.chips{display:flex;flex-wrap:wrap;gap:8px;padding:12px 12px 14px;border-top:1px solid #3a1d14}
+.chip{font:15px/1 'JetBrains Mono',monospace;min-height:44px;padding:0 12px;border-radius:10px;border:1px solid;background:rgba(255,255,255,.03);cursor:pointer}
+.chip.a{color:var(--tq);border-color:rgba(63,227,210,.45)}
+.chip.b{color:var(--coral);border-color:rgba(255,118,80,.5)}
+.chip.e{color:var(--gold);border-color:rgba(255,210,122,.45)}
+.chip:hover{background:rgba(255,255,255,.08)}
+.running .chip{opacity:.45;pointer-events:none}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 16px;border-radius:12px;border:2px solid var(--line);background:var(--panel2);color:var(--ink);font:600 16px/1 Rubik,system-ui,sans-serif;cursor:pointer;white-space:nowrap}
+.btn:hover,.iconbtn:hover:not(:disabled){background:#5a3324}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn svg{width:18px;height:18px;fill:currentColor;flex:none}
+.btn.ghost{background:transparent}
+.btn.run{background:var(--coral);border-color:#ffa58a;color:#2a0f07;min-width:112px;box-shadow:0 4px 0 #b9452a;margin-bottom:4px}
+.btn.run:hover{background:#ff8d6c}
+.btn.run:active{box-shadow:0 1px 0 #b9452a;transform:translateY(3px)}
+.btn.run.stop{background:var(--sand);border-color:#f2d6a6;box-shadow:0 4px 0 #a07a45}
+.btn.big{min-height:58px;padding:0 30px;font-size:19px;border-radius:16px}
+#run:not(.stop){animation:pulse 2.6s ease-in-out infinite}
+@keyframes pulse{0%,100%{box-shadow:0 4px 0 #b9452a,0 0 0 rgba(255,118,80,0)}50%{box-shadow:0 4px 0 #b9452a,0 0 22px rgba(255,118,80,.55)}}
+.btn .i-stop,.btn.stop .i-play{display:none}
+.btn.stop .i-stop{display:block}
+.btn:focus-visible,.chip:focus-visible,.lv:focus-visible,.iconbtn:focus-visible,.brand:focus-visible,summary:focus-visible,input:focus-visible{outline:3px solid var(--tq);outline-offset:2px}
+input[type=range]{-webkit-appearance:none;appearance:none;width:110px;height:44px;background:transparent;cursor:pointer;margin:0}
+input[type=range]::-webkit-slider-runnable-track{height:6px;border-radius:3px;background:#6b3d2a}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:var(--sand);margin-top:-8px;border:3px solid #2a140e}
+input[type=range]::-moz-range-track{height:6px;border-radius:3px;background:#6b3d2a}
+input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:var(--sand);border:3px solid #2a140e}
+.help{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+#hint{order:-1;flex-basis:100%;margin:0;padding:12px 14px;border-radius:12px;background:var(--panel);border:1px dashed var(--sand)}
+.ref{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:0 16px}
+.ref summary{cursor:pointer;min-height:48px;display:flex;align-items:center;font-weight:600}
+.scroll{overflow-x:auto}
+.ref table{width:100%;border-collapse:collapse;font-size:15px;margin-bottom:12px}
+.ref td{padding:7px 4px;border-top:1px solid #4e2b1f;vertical-align:top}
+.ref td:first-child{font:14px/1.6 'JetBrains Mono',monospace;white-space:nowrap;color:var(--tq);padding-right:14px}
+dialog{background:var(--panel);color:var(--ink);border:2px solid var(--line);border-radius:22px;padding:24px;width:min(640px,calc(100vw - 32px));max-height:calc(100% - 48px);overflow:auto}
+dialog::backdrop{background:rgba(12,5,3,.78)}
+dialog h2{margin-top:0}
+dialog h3{font:700 18px/1.2 'Pixelify Sans',Rubik,sans-serif;margin:18px 0 8px;color:var(--sand)}
+.win,.over{text-align:center}
+.win .row,.over .row{justify-content:center}
+.stars{display:flex;gap:3px}
+.stars.big{justify-content:center;gap:12px;margin:4px 0 10px}
+.stars.big svg{width:60px;height:60px}
+.stars.big span{opacity:0;transform:scale(.2)}
+.stars.big span.pop{animation:pop .5s cubic-bezier(.2,1.7,.4,1) forwards}
+.stars.big span.on svg{filter:drop-shadow(0 0 10px rgba(255,210,122,.7))}
+@keyframes pop{to{opacity:1;transform:none}}
+.over>svg{width:72px;height:72px;fill:var(--heart);filter:drop-shadow(0 0 14px rgba(255,90,78,.6))}
+.over h2{font-size:clamp(44px,9vw,68px);color:var(--coral);text-shadow:0 4px 0 #5b2416;margin:6px 0 12px}
+.row{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+.lvgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(128px,1fr));gap:10px}
+.lv{display:flex;flex-direction:column;align-items:flex-start;gap:6px;text-align:left;padding:12px;border-radius:14px;border:2px solid var(--line);background:var(--panel2);color:var(--ink);cursor:pointer;min-height:104px}
+.lv:hover:not(:disabled){border-color:var(--sand)}
+.lv b{font:700 22px/1 'Pixelify Sans',Rubik,sans-serif;color:var(--sand)}
+.lv span{font-size:15px;line-height:1.25}
+.lv.cur{border-color:var(--tq)}
+.lv:disabled{opacity:.5;cursor:not-allowed}
+.lock{display:inline-flex;align-items:center;gap:4px;font-size:13px;color:var(--muted)}
+.lock svg{width:14px;height:14px;fill:currentColor}
+.tot{display:flex;align-items:center;gap:6px;color:var(--sand);font-weight:600}
+.win .tot{justify-content:center}
+.tot svg{width:18px;height:18px;fill:var(--gold)}
+.tip{color:var(--muted)}
+.depthbig{margin:0;font:700 clamp(44px,8vw,64px)/1 'Pixelify Sans',Rubik,sans-serif;color:var(--heart);text-shadow:0 0 22px rgba(255,90,78,.55),0 4px 0 #5b2416}
+.bonus{display:flex;align-items:center;justify-content:center;gap:6px;color:var(--gold);font-weight:600}
+.bonus svg{width:20px;height:20px;fill:var(--heart)}
+.lv.inf{border-color:rgba(255,90,78,.6);background:linear-gradient(#5a2219,#3a1510)}
+.lv.inf b{color:var(--heart);font-size:30px}
+.depth{border-color:rgba(255,90,78,.6);color:#ffd0c4}
+.endless .housing{background:linear-gradient(#7a2a20,#3d1310);box-shadow:inset 0 2px 0 rgba(255,180,160,.2),0 0 40px -10px rgba(255,70,50,.45),0 24px 40px -24px #000}
+.endless .leds .pw{background:var(--heart);box-shadow:0 0 8px var(--heart)}
+.endless h2#ltitle{color:#ffd0c4}
+#endlessBtn{border-color:rgba(255,90,78,.7);color:#ffd0c4;background:rgba(60,15,10,.55)}
+#endlessBtn svg{width:26px;height:26px}
+.title{position:fixed;inset:0;z-index:50;display:flex;flex-direction:column;align-items:center;text-align:center;padding:max(7vh,28px) 16px 0;background:#1a0b07;transition:opacity .6s,transform .6s}
+.title.gone{opacity:0;transform:scale(1.04);pointer-events:none}
+.title canvas{position:absolute;inset:0;width:100%;height:100%}
+.tin{position:relative;display:flex;flex-direction:column;align-items:center;gap:14px;max-width:960px}
+.tname{font:700 clamp(52px,min(12vw,15vh),128px)/.92 'Pixelify Sans',Rubik,sans-serif;margin:0;letter-spacing:-.02em;color:#fff3dc;text-shadow:0 0 28px rgba(63,227,210,.6),0 6px 0 #c4532f,0 11px 0 #5b2416}
+.tsub{margin:0;font-size:clamp(16px,2vw,19px);color:#ecd4b8;max-width:30em;text-wrap:balance}
+.tbtns{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:6px}
+.tstat{margin:0;color:var(--sand);font-weight:600;display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:center}
+.tstat svg{width:18px;height:18px;fill:var(--gold)}
+.tkey{margin:0;font-size:14px;color:var(--muted);animation:blink 1.6s steps(2) infinite}
+@keyframes blink{50%{opacity:.25}}
+#enter{animation:pulse 2.2s ease-in-out infinite}
+@media(max-height:700px){
+  .title{padding-top:22px}
+  .tin{gap:10px}
+  .tkey{display:none}
+}
+@media(max-width:819px){
+  .app{grid-template-columns:minmax(0,1fr)}
+  .bar{position:fixed;left:0;right:0;bottom:0;z-index:20;padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px));border-top:2px solid var(--line);border-bottom:0}
+  body{padding-bottom:88px}
+}
+@media(max-width:600px){
+  .keys{display:none}
+  dialog{padding:18px}
+  .lv{min-height:90px}
+}
+@media(max-width:480px){
+  .pill{font-size:13px;padding:3px 9px}
+  .hrt svg{width:16px;height:16px}
+  .hud{gap:6px}
+  .bname,.lbl{display:none}
+  #mapBtn{padding:0 12px}
+  .housing{padding:7px;border-radius:20px}
+  .tkey{display:none}
+}
+@media(max-width:420px){
+  .speed span{display:none}
+  .btn.run{min-width:96px}
+  .card{padding:16px}
+}
+@media(prefers-reduced-motion:reduce){
+  .btn.run:active{transform:none}
+  #run:not(.stop),#enter,.tkey,.housing.shake{animation:none}
+  .ccard.show{animation-duration:2.8s}
+  .title{transition:none}
+}
+</style>
+</head>
+<body>
+<div class="title" id="title">
+  <canvas id="tcv" aria-hidden="true"></canvas>
+  <div class="tin">
+    <h1 class="tname">Code Quest</h1>
+    <p class="tsub">Write real code to guide Pixel the robot through the Sunken Archive. Three hearts per level. Every mistake costs one.</p>
+    <div class="tbtns">
+      <button class="btn run big" id="enter">Enter the Archive</button>
+      <button class="btn ghost big" id="endlessBtn"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17.5 7c-2.2 0-3.7 1.6-5.5 3.6C10.2 8.6 8.7 7 6.5 7a5 5 0 000 10c2.2 0 3.7-1.6 5.5-3.6 1.8 2 3.3 3.6 5.5 3.6a5 5 0 000-10zm-11 7.6a2.6 2.6 0 010-5.2c1.2 0 2.2 1 3.9 2.6-1.7 1.6-2.7 2.6-3.9 2.6zm11 0c-1.2 0-2.2-1-3.9-2.6 1.7-1.6 2.7-2.6 3.9-2.6a2.6 2.6 0 010 5.2z"/></svg><span>Endless Vault</span></button>
+      <button class="btn ghost big" id="newgame" hidden>New game</button>
+    </div>
+    <p class="tstat" id="tstat"></p>
+    <p class="tkey">Press Enter to start</p>
+  </div>
+</div>
+<header class="top">
+  <button class="brand" id="homeBtn" aria-label="Back to title screen">
+    <svg viewBox="0 0 48 48" aria-hidden="true"><line x1="24" y1="4" x2="24" y2="11" stroke="#8a5a40" stroke-width="2.5"/><circle cx="24" cy="5" r="3.6" fill="#ff7650"/><rect x="5" y="10" width="38" height="30" rx="12" fill="#f8ebd6"/><rect x="10" y="16" width="28" height="16" rx="7" fill="#24120c"/><rect x="15" y="20" width="5" height="8" rx="2" fill="#3fe3d2"/><rect x="28" y="20" width="5" height="8" rx="2" fill="#3fe3d2"/></svg>
+    <span class="bname">Code Quest</span>
+  </button>
+  <div class="topr">
+    <span class="total" id="total" title="Stars collected"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.6l2.85 6.05 6.65.82-4.9 4.58 1.28 6.6L12 17.4l-5.88 3.25 1.28-6.6-4.9-4.58 6.65-.82z"/></svg><b>0</b>/<span id="totalMax">51</span></span>
+    <button class="btn" id="mapBtn" aria-label="Levels"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h7v7H4zm9 0h7v7h-7zM4 13h7v7H4zm9 0h7v7h-7z"/></svg><span class="lbl">Levels</span></button>
+    <button class="iconbtn" id="soundBtn" aria-label="Sound"></button>
+  </div>
+</header>
+<main class="app">
+  <section class="col">
+    <div class="housing" id="housing">
+      <div class="stage" id="stage">
+        <canvas id="world" role="img" aria-label="The game world: Pixel the robot, crystals, traps and the gate"></canvas>
+        <div class="hud">
+          <span class="pill hearts" id="hearts"></span>
+          <span class="pill" id="crys"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l7 9-7 11-7-11z"/></svg><b>0/0</b></span>
+          <span class="pill depth" id="depth" hidden></span>
+          <span class="pill" id="room" hidden>Room 1 of 1</span>
+        </div>
+        <div class="flash" id="flash"></div>
+        <div class="ccard" id="ccard" aria-live="polite"><span id="ccN"></span><b id="ccT"></b></div>
+      </div>
+      <div class="leds" aria-hidden="true"><i class="pw"></i><i class="rn"></i></div>
+    </div>
+    <div class="console info" id="console" aria-live="polite"><span>Loading…</span></div>
+    <article class="card">
+      <div class="shead">
+        <p class="chap" id="chap">Chapter 1</p>
+        <div class="nav">
+          <button class="iconbtn" id="prev" aria-label="Previous level"><svg viewBox="0 0 24 24"><path d="M15.4 5.4L14 4l-8 8 8 8 1.4-1.4L8.8 12z"/></svg></button>
+          <button class="iconbtn" id="next" aria-label="Next level"><svg viewBox="0 0 24 24"><path d="M8.6 18.6L10 20l8-8-8-8-1.4 1.4 6.6 6.6z"/></svg></button>
+        </div>
+      </div>
+      <h2 id="ltitle">Wake up, Pixel</h2>
+      <p id="ltext"></p>
+      <div class="goal">
+        <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M7 29V15a9 9 0 0118 0v14z" fill="#3fe3d2"/><path d="M7 29V15a9 9 0 0118 0v14" fill="none" stroke="#c98a5a" stroke-width="3"/></svg>
+        <div><b id="lgoal"></b><span class="best" id="lbest"></span></div>
+      </div>
+    </article>
+  </section>
+  <section class="col">
+    <div class="learn">
+      <h3 id="learnT"></h3>
+      <p id="learnP"></p>
+      <pre id="learnC"></pre>
+    </div>
+    <div class="edcard">
+      <div class="bar">
+        <button class="btn run" id="run" title="Run (Ctrl+Enter)"><svg class="i-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l12.5-7.5z"/></svg><svg class="i-stop" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6h12v12H6z"/></svg><span>Run</span></button>
+        <button class="btn ghost" id="reset"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5V2L7 6l5 4V7a5 5 0 11-5 5H5a7 7 0 107-7z"/></svg>Reset</button>
+        <label class="speed" for="speed"><span>Speed</span><input type="range" id="speed" min="0" max="5" step="1" value="2"></label>
+      </div>
+      <div class="ed">
+        <div class="gut" id="gut" aria-hidden="true"></div>
+        <div class="cw" id="cw">
+          <pre id="hl" aria-hidden="true"></pre>
+          <textarea id="code" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" aria-label="Your code"></textarea>
+        </div>
+      </div>
+      <div class="edfoot"><span id="mem"></span><span class="keys">Tab indents · Ctrl+Enter runs</span></div>
+      <div class="chips" id="chips" aria-label="Insert a command"></div>
+    </div>
+    <div class="help">
+      <button class="btn ghost" id="hintBtn"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 21h6v-1.5H9zm3-19a7 7 0 00-4 12.7V17h8v-2.3A7 7 0 0012 2z"/></svg><span>Hint (costs 1 heart)</span></button>
+      <p id="hint" hidden></p>
+      <button class="btn ghost" id="solBtn" hidden>Show the solution</button>
+      <button class="btn ghost" id="restart">Start code over</button>
+    </div>
+    <details class="ref">
+      <summary>Every command Pixel knows</summary>
+      <div class="scroll"><table>
+        <tr><td>move()</td><td>Roll one tile forward.</td></tr>
+        <tr><td>turn_left()<br>turn_right()</td><td>Turn a quarter turn on the spot.</td></tr>
+        <tr><td>collect()</td><td>Pick up the crystal Pixel is standing on.</td></tr>
+        <tr><td>wait()</td><td>Do nothing for one tick. Spikes still flip.</td></tr>
+        <tr><td>repeat 5:</td><td>Run the indented lines below it 5 times. <code>for i in range(5):</code> works too.</td></tr>
+        <tr><td>while not at_goal():</td><td>Keep running the indented lines while the answer is True. <code>while True:</code> loops forever.</td></tr>
+        <tr><td>if … : / elif … : / else:</td><td>Choose which lines to run.</td></tr>
+        <tr><td>def name():</td><td>Make your own command out of the indented lines. Run it with <code>name()</code>.</td></tr>
+        <tr><td>path_ahead()<br>path_left()<br>path_right()</td><td>Questions: is there floor in that direction?</td></tr>
+        <tr><td>on_crystal()<br>at_goal()</td><td>Questions: am I on a crystal? Am I on the gate?</td></tr>
+        <tr><td>spikes_ahead()</td><td>Question: would moving forward right now land on raised spikes?</td></tr>
+        <tr><td>not / and / or</td><td>Flip or combine questions: <code>if path_ahead() and not on_crystal():</code></td></tr>
+        <tr><td># note</td><td>A comment. Pixel ignores everything after #, and comments don't use memory.</td></tr>
+      </table></div>
+    </details>
+  </section>
+</main>
+<dialog id="dlg"><div id="dlgBody"></div></dialog>
+<script>
+{
+const CQ_DEMO = true;
+/* ===== Engine: world, parser, interpreter (PixelScript, a small Python-like language) ===== */
+const DIRS = [[0, -1], [1, 0], [0, 1], [-1, 0]];
+const DIR_CH = { '^': 0, '>': 1, 'v': 2, '<': 3 };
+const ACTIONS = ['move', 'turn_left', 'turn_right', 'collect', 'wait'];
+const SENSORS = ['path_ahead', 'path_left', 'path_right', 'on_crystal', 'at_goal', 'spikes_ahead'];
+const KEYWORDS = ['repeat', 'while', 'if', 'elif', 'else', 'def', 'not', 'and', 'or', 'True', 'False', 'pass', 'for', 'in', 'range'];
+const WIN = { win: true };
+
+class CodeError extends Error {
+  constructor(line, msg) { super(msg); this.line = line; }
+}
+
+function makeWorld(rows) {
+  const h = rows.length, w = Math.max(...rows.map(r => r.length));
+  const grid = rows.map(r => r.padEnd(w, ' ').split(''));
+  let x = 0, y = 0, dir = 1, total = 0, ex = -1, ey = -1;
+  for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
+    const c = grid[j][i];
+    if (c in DIR_CH) { x = i; y = j; dir = DIR_CH[c]; grid[j][i] = '.'; }
+    else if (c === '*') total++;
+    else if (c === 'E') { ex = i; ey = j; }
+  }
+  return { w, h, grid, x, y, dir, total, got: 0, ex, ey, won: false, actions: 0, t: 0 };
+}
+
+const tileAt = (W, x, y) => (y < 0 || y >= W.h || x < 0 || x >= W.w) ? ' ' : W.grid[y][x];
+const walkable = c => c === '.' || c === '*' || c === 'E' || c === 'x' || c === 'X';
+const isSpike = c => c === 'x' || c === 'X';
+const spikeUp = (c, t) => c === 'x' ? t % 2 === 0 : c === 'X' ? t % 2 === 1 : false;
+const look = (W, turn) => { const d = DIRS[(W.dir + turn + 4) % 4]; return tileAt(W, W.x + d[0], W.y + d[1]); };
+const SENSE = {
+  path_ahead: W => walkable(look(W, 0)),
+  path_left: W => walkable(look(W, -1)),
+  path_right: W => walkable(look(W, 1)),
+  on_crystal: W => tileAt(W, W.x, W.y) === '*',
+  at_goal: W => W.x === W.ex && W.y === W.ey,
+  spikes_ahead: W => { const c = look(W, 0); return isSpike(c) && spikeUp(c, W.t + 1); },
+};
+
+function act(W, name, line) {
+  const ev = doAct(W, name, line);
+  W.t++; ev.t = W.t;
+  const under = tileAt(W, W.x, W.y);
+  if (spikeUp(under, W.t)) {
+    W.won = false;
+    const err = new CodeError(line, 'Zap! The spikes shot up while Pixel was standing on them.');
+    ev.zap = true; err.ev = ev;
+    throw err;
+  }
+  return ev;
+}
+function doAct(W, name, line) {
+  if (++W.actions > 2000) throw new CodeError(line, "Pixel's battery ran out after 2,000 actions. Is a loop running forever?");
+  const fx = W.x, fy = W.y;
+  if (name === 'move') {
+    const d = DIRS[W.dir], nx = W.x + d[0], ny = W.y + d[1], t = tileAt(W, nx, ny);
+    if (!walkable(t)) {
+      const err = new CodeError(line, t === '#' ? 'Bonk! Pixel rolled straight into a wall.' : 'Pixel rolled off the edge and fell into the void!');
+      err.ev = { type: 'bump', x: fx, y: fy, dx: d[0], dy: d[1], wall: t === '#' };
+      throw err;
+    }
+    W.x = nx; W.y = ny;
+    const atGate = nx === W.ex && ny === W.ey;
+    if (atGate && W.got === W.total) W.won = true;
+    return { type: 'move', fx, fy, x: nx, y: ny, sealed: atGate && !W.won };
+  }
+  if (name === 'turn_left' || name === 'turn_right') {
+    const from = W.dir, delta = name === 'turn_left' ? -1 : 1;
+    W.dir = (W.dir + delta + 4) % 4;
+    return { type: 'turn', from, delta };
+  }
+  if (name === 'wait') return { type: 'wait', x: W.x, y: W.y };
+  if (tileAt(W, W.x, W.y) === '*') {
+    W.grid[W.y][W.x] = '.'; W.got++;
+    return { type: 'collect', x: W.x, y: W.y, open: W.got === W.total };
+  }
+  return { type: 'collect-none', x: W.x, y: W.y };
+}
+
+function lev(a, b) {
+  const d = Array.from({ length: a.length + 1 }, (_, i) => [i]);
+  for (let j = 1; j <= b.length; j++) d[0][j] = j;
+  for (let i = 1; i <= a.length; i++) for (let j = 1; j <= b.length; j++)
+    d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+  return d[a.length][b.length];
+}
+function suggest(word, list) {
+  let best = null, bd = 3;
+  for (const c of list) { const d = lev(word.toLowerCase(), c.toLowerCase()); if (d < bd) { bd = d; best = c; } }
+  return best;
+}
+
+function parseCond(src, L) {
+  const toks = src.trim().match(/[A-Za-z_]\w*|\(|\)|[^\sA-Za-z_()]+/g) || [];
+  if (!toks.length) throw new CodeError(L, 'This line needs a question to check, like: path_ahead()');
+  let i = 0;
+  const peek = () => toks[i];
+  const orE = () => { let a = andE(); while (peek() === 'or') { i++; a = { op: 'or', a, b: andE() }; } return a; };
+  const andE = () => { let a = notE(); while (peek() === 'and') { i++; a = { op: 'and', a, b: notE() }; } return a; };
+  const notE = () => { if (peek() === 'not') { i++; return { op: 'not', a: notE() }; } return atom(); };
+  const atom = () => {
+    const t = toks[i++];
+    if (t === undefined) throw new CodeError(L, 'The question on this line ends too early.');
+    if (t === '(') { const e = orE(); if (toks[i++] !== ')') throw new CodeError(L, 'A bracket ( is missing its partner ).'); return e; }
+    if (t === 'True' || t === 'False') return { op: 'const', v: t === 'True' };
+    if (t === 'true' || t === 'false') throw new CodeError(L, `Write it with a capital letter: ${t === 'true' ? 'True' : 'False'}`);
+    if (/^(!|&&|\|\||==|!=)/.test(t)) throw new CodeError(L, 'Use the words not, and, or instead of symbols.');
+    if (/^[A-Za-z_]\w*$/.test(t)) {
+      if (SENSORS.includes(t)) {
+        if (toks[i] === '(' && toks[i + 1] === ')') { i += 2; return { op: 'sense', name: t }; }
+        throw new CodeError(L, `Add brackets to ask the question: ${t}()`);
+      }
+      if (ACTIONS.includes(t)) throw new CodeError(L, `${t}() is an action, not a question. Questions are: ${SENSORS.map(s => s + '()').join(', ')}`);
+      const s = suggest(t, SENSORS);
+      throw new CodeError(L, `Pixel doesn't know the question "${t}".` + (s ? ` Did you mean ${s}()?` : ''));
+    }
+    throw new CodeError(L, `Pixel didn't expect "${t}" here.`);
+  };
+  const e = orE();
+  if (i < toks.length) throw new CodeError(L, `Pixel didn't expect "${toks[i]}" here.`);
+  return e;
+}
+
+function parse(src) {
+  const items = [];
+  src.replace(/\r/g, '').split('\n').forEach((raw, i) => {
+    const code = raw.replace(/#.*/, '');
+    if (!code.trim()) return;
+    const indent = code.match(/^[ \t]*/)[0].replace(/\t/g, '    ').length;
+    items.push({ indent, text: code.trim().replace(/\s+$/, ''), line: i + 1 });
+  });
+  const funcs = {};
+  let pos = 0;
+  const kwOf = t => (t.match(/^[A-Za-z_]\w*/) || [''])[0];
+  const colon = it => {
+    const k = kwOf(it.text);
+    if (!it.text.endsWith(':')) throw new CodeError(it.line, `Lines that start with "${k}" must end with a colon  :`);
+  };
+  function body(it) {
+    pos++;
+    const nx = items[pos];
+    if (!nx || nx.indent <= it.indent) throw new CodeError(it.line, `The lines that belong to "${it.text}" need to be indented underneath it (press Tab).`);
+    return block(nx.indent);
+  }
+  function block(indent) {
+    const out = [];
+    while (pos < items.length) {
+      const it = items[pos];
+      if (it.indent < indent) break;
+      if (it.indent > indent) throw new CodeError(it.line, 'This line is indented further than the line above it. Only lines inside a block (after a line ending in : ) get indented.');
+      out.push(statement(it, indent));
+    }
+    return out;
+  }
+  function statement(it, indent) {
+    const t = it.text, L = it.line, kw = kwOf(t);
+    let m;
+    if (kw === 'repeat') {
+      colon(it);
+      m = t.match(/^repeat\s*\(?\s*(\d+)\s*\)?\s*:$/);
+      if (!m) throw new CodeError(L, 'Write repeat with a number, like this: repeat 3:');
+      const n = +m[1];
+      if (n < 1 || n > 999) throw new CodeError(L, 'Pick a repeat number between 1 and 999.');
+      return { type: 'repeat', n, line: L, body: body(it) };
+    }
+    if (kw === 'for') {
+      colon(it);
+      m = t.match(/^for\s+[A-Za-z_]\w*\s+in\s+range\s*\(\s*(\d+)\s*\)\s*:$/);
+      if (!m) throw new CodeError(L, 'Pixel understands for-loops like this: for i in range(3):');
+      return { type: 'repeat', n: Math.min(+m[1], 999), line: L, body: body(it) };
+    }
+    if (kw === 'while') { colon(it); const cond = parseCond(t.slice(5, -1), L); return { type: 'while', cond, line: L, body: body(it) }; }
+    if (kw === 'if') {
+      colon(it);
+      const branches = [{ cond: parseCond(t.slice(2, -1), L), line: L, body: body(it) }];
+      let els = null;
+      while (pos < items.length && items[pos].indent === indent) {
+        const n = items[pos], k = kwOf(n.text);
+        if (k === 'elif') { colon(n); branches.push({ cond: parseCond(n.text.slice(4, -1), n.line), line: n.line, body: body(n) }); }
+        else if (k === 'else') {
+          if (!/^else\s*:$/.test(n.text)) throw new CodeError(n.line, 'else stands on its own, like this: else:');
+          els = body(n); break;
+        } else break;
+      }
+      return { type: 'if', branches, els, line: L };
+    }
+    if (kw === 'elif' || kw === 'else') throw new CodeError(L, `"${kw}" has to come right after an if block, lined up with the if.`);
+    if (kw === 'def') {
+      colon(it);
+      m = t.match(/^def\s+([A-Za-z_]\w*)\s*\(\s*\)\s*:$/);
+      if (!m) throw new CodeError(L, 'Create a command like this: def grab_crystal():');
+      const name = m[1];
+      if (ACTIONS.includes(name) || SENSORS.includes(name) || KEYWORDS.includes(name)) throw new CodeError(L, `"${name}" is already a built-in word. Pick another name.`);
+      if (funcs[name]) throw new CodeError(L, `You already made a command called ${name}().`);
+      if (indent > 0) throw new CodeError(L, 'Make new commands at the left edge, not inside another block.');
+      const f = { name, line: L, body: null };
+      funcs[name] = f;
+      f.body = body(it);
+      return { type: 'def', name, line: L };
+    }
+    if (t === 'pass') { pos++; return { type: 'pass', line: L }; }
+    m = t.match(/^([A-Za-z_]\w*)\s*\(\s*\)\s*;?$/);
+    if (m) { pos++; return { type: 'call', name: m[1], line: L }; }
+    m = t.match(/^([A-Za-z_]\w*)$/);
+    if (m) throw new CodeError(L, `Add brackets to run a command: ${m[1]}()`);
+    m = t.match(/^([A-Za-z_]\w*)\s*\((.+)\)$/);
+    if (m) throw new CodeError(L, `${m[1]}() doesn't take anything inside its brackets. Write ${m[1]}()`);
+    throw new CodeError(L, `Pixel doesn't understand "${t}".`);
+  }
+  const main = block(0);
+  const known = [...ACTIONS, ...Object.keys(funcs)];
+  (function check(stmts) {
+    for (const s of stmts) {
+      if (s.type === 'call' && !known.includes(s.name)) {
+        if (SENSORS.includes(s.name)) throw new CodeError(s.line, `${s.name}() is a question. Use it after if or while, like: if ${s.name}():`);
+        const g = suggest(s.name, known);
+        throw new CodeError(s.line, `Pixel doesn't know the command ${s.name}().` + (g ? ` Did you mean ${g}()?` : ''));
+      }
+      if (s.body) check(s.body);
+      if (s.branches) s.branches.forEach(b => check(b.body));
+      if (s.els) check(s.els);
+    }
+    for (const f of Object.values(funcs)) if (f.body && !f.checked) { f.checked = true; check(f.body); }
+  })(main);
+  return { main, funcs };
+}
+
+function evalCond(c, W) {
+  switch (c.op) {
+    case 'const': return c.v;
+    case 'sense': return SENSE[c.name](W);
+    case 'not': return !evalCond(c.a, W);
+    case 'and': return evalCond(c.a, W) && evalCond(c.b, W);
+    case 'or': return evalCond(c.a, W) || evalCond(c.b, W);
+  }
+}
+
+function* exec(stmts, W, ctx, depth) {
+  const tick = line => { if (++ctx.steps > 20000) throw new CodeError(line, 'Pixel ran 20,000 steps without finishing. There is probably a loop that never ends.'); };
+  for (const s of stmts) {
+    tick(s.line);
+    if (s.type === 'call') {
+      if (ACTIONS.includes(s.name)) {
+        const ev = act(W, s.name, s.line);
+        ev.line = s.line;
+        yield ev;
+        if (W.won) throw WIN;
+      } else {
+        if (depth > 60) throw new CodeError(s.line, 'Your commands keep calling each other forever. Pixel got dizzy.');
+        yield* exec(ctx.funcs[s.name].body, W, ctx, depth + 1);
+      }
+    } else if (s.type === 'repeat') {
+      for (let k = 0; k < s.n; k++) { tick(s.line); yield* exec(s.body, W, ctx, depth); }
+    } else if (s.type === 'while') {
+      while (evalCond(s.cond, W)) { tick(s.line); yield* exec(s.body, W, ctx, depth); }
+    } else if (s.type === 'if') {
+      const b = s.branches.find(b => evalCond(b.cond, W));
+      if (b) yield* exec(b.body, W, ctx, depth);
+      else if (s.els) yield* exec(s.els, W, ctx, depth);
+    }
+  }
+}
+
+const codeLines = src => src.split('\n').filter(l => l.replace(/#.*/, '').trim()).length;
+
+/* ===== Levels ===== */
+const CHAPTERS = ['Boot up', 'Loops', 'Decisions', 'Your own commands', 'The Deep Vault'];
+const LEVELS = [
+  {
+    id: 'wake', ch: 0, title: 'Wake up, Pixel',
+    story: 'Pixel blinks awake on a stone bridge deep inside the Sunken Archive. Far ahead, a gate hums. Pixel can\'t move on its own. It only moves when you write code.',
+    goal: 'Roll across the bridge to the gate.',
+    learn: { title: 'Commands run in order', text: 'Each line is one command, and Pixel runs them from top to bottom. move() rolls one tile forward.', code: 'move()\nmove()' },
+    starter: '# Pixel runs your code from top to bottom.\nmove()\n',
+    hint: 'The gate is 4 tiles away. Write move() four times, each on its own line.',
+    solution: 'move()\nmove()\nmove()\nmove()\n',
+    maps: [['       ', ' >...E ', '       ']],
+  },
+  {
+    id: 'corner', ch: 0, title: 'Around the corner',
+    story: 'The corridor bends. Pixel\'s wheels only roll straight, so it has to turn on the spot before it can go a new way.',
+    goal: 'Follow the corridor to the gate.',
+    learn: { title: 'Turning', text: 'turn_left() and turn_right() spin Pixel a quarter turn without moving. The little arrow on the floor shows which way Pixel faces.', code: 'move()\nturn_right()\nmove()' },
+    starter: 'move()\nmove()\nturn_right()\n',
+    hint: 'Two moves, turn right, two moves, turn left, two moves. Use the arrow on the floor to check which way Pixel faces.',
+    solution: 'move()\nmove()\nturn_right()\nmove()\nmove()\nturn_left()\nmove()\nmove()\n',
+    maps: [['#######', '#>..###', '###.###', '###..E#', '#######']],
+  },
+  {
+    id: 'shiny', ch: 0, title: 'Shiny things',
+    story: 'Glittering data crystals lie on the bridge: pieces of the Great Compiler\'s memory. This gate stays sealed until every crystal in the room is collected.',
+    goal: 'Collect both crystals, then reach the gate.',
+    learn: { title: 'Collecting', text: 'collect() picks up a crystal from the tile Pixel is standing on. Roll onto the crystal first, then collect it.', code: 'move()\ncollect()' },
+    starter: 'move()\nmove()\ncollect()\n',
+    hint: 'Move twice, collect, move twice, collect, then move twice more.',
+    solution: 'move()\nmove()\ncollect()\nmove()\nmove()\ncollect()\nmove()\nmove()\n',
+    maps: [['         ', ' >.*.*.E ', '         ']],
+  },
+  {
+    id: 'hall', ch: 1, title: 'The long hall',
+    story: 'A very long hall. You could type move() eleven times, but programmers are lazy in a clever way: they make the computer do the repeating.',
+    goal: 'Reach the gate using a loop.',
+    learn: { title: 'repeat', text: 'repeat N: runs the indented lines underneath it N times. Indent with 4 spaces, or press Tab.', code: 'repeat 3:\n    move()' },
+    starter: 'repeat 3:\n    move()\n',
+    mem: 2,
+    hint: 'Count the tiles between Pixel and the gate, then change the 3 to that number.',
+    solution: 'repeat 11:\n    move()\n',
+    maps: [['##############', '#>..........E#', '##############']],
+  },
+  {
+    id: 'row', ch: 1, title: 'Crystal row',
+    story: 'Crystals sit on every other tile, in a pattern. When you spot a pattern, you can put it in a loop.',
+    goal: 'Collect all 4 crystals and reach the gate.',
+    learn: { title: 'Loops with several lines', text: 'Every line indented under repeat is part of the loop. The whole group runs again on each repeat.', code: 'repeat 2:\n    move()\n    collect()' },
+    starter: 'repeat 4:\n    move()\n',
+    mem: 4,
+    hint: 'The pattern is: move onto a crystal, collect it, move once more. Repeat that 4 times.',
+    solution: 'repeat 4:\n    move()\n    collect()\n    move()\n',
+    maps: [['###########', '#>*.*.*.*E#', '###########']],
+  },
+  {
+    id: 'stairs', ch: 1, title: 'The staircase',
+    story: 'Ancient steps climb toward the gate. Each step is the same four moves. Find them, and loop them.',
+    goal: 'Climb the stairs to the gate.',
+    learn: { title: 'Spot the pattern', text: 'Act out one step in your head: which commands get Pixel from one step to the next, facing the same way as before?', code: 'repeat 4:\n    # one step\n    move()' },
+    starter: 'repeat 4:\n    move()\n',
+    mem: 5,
+    hint: 'One step is: move(), turn_left(), move(), turn_right(). Put all four inside repeat 4:',
+    solution: 'repeat 4:\n    move()\n    turn_left()\n    move()\n    turn_right()\n',
+    maps: [['#######', '#####E#', '####..#', '###..##', '##..###', '#>.####', '#######']],
+  },
+  {
+    id: 'ring', ch: 1, title: 'Around the pillar',
+    story: 'Ten crystals ring a fallen pillar. The path is a square: four sides, each one the same.',
+    goal: 'Collect every crystal on the way around, then enter the gate.',
+    learn: { title: 'Loops inside loops', text: 'A loop can live inside another loop. The inner loop runs all the way through each time the outer loop goes round once.', code: 'repeat 4:\n    repeat 3:\n        move()\n    turn_right()' },
+    starter: 'repeat 4:\n    move()\n',
+    mem: 5,
+    hint: 'Each side: 3 times (move, collect), then turn right. Do 4 sides. The gate appears on the last side.',
+    solution: 'repeat 4:\n    repeat 3:\n        move()\n        collect()\n    turn_right()\n',
+    maps: [['######', '#>***#', '#E##*#', '#*##*#', '#****#', '######']],
+  },
+  {
+    id: 'shift', ch: 2, title: 'The shifting hall',
+    story: 'This hall changes length every time Pixel enters. A fixed number of moves won\'t work. Pixel has to keep going until it arrives.',
+    goal: 'One program has to clear all 3 versions of the hall.',
+    learn: { title: 'while', text: 'while CONDITION: repeats its lines for as long as the condition is True. at_goal() asks "am I on the gate?" and not flips the answer.', code: 'while not at_goal():\n    move()' },
+    starter: 'repeat 5:\n    move()\n',
+    mem: 2,
+    hint: 'Keep moving while Pixel is not at the goal: while not at_goal(): then move() underneath.',
+    solution: 'while not at_goal():\n    move()\n',
+    maps: [
+      ['########', '#>....E#', '########'],
+      ['#############', '#>.........E#', '#############'],
+      ['######', '#>..E#', '######'],
+    ],
+  },
+  {
+    id: 'rain', ch: 2, title: 'Crystal rain',
+    story: 'Crystals fall from the ceiling and land in different places each time. Pixel has to look down at every tile and decide.',
+    goal: 'Collect every crystal in all 3 versions of the room.',
+    learn: { title: 'if', text: 'if CONDITION: runs its lines only when the condition is True. on_crystal() is True when Pixel stands on a crystal.', code: 'if on_crystal():\n    collect()' },
+    starter: 'while not at_goal():\n    move()\n',
+    mem: 4,
+    hint: 'Inside the while loop, after move(), add: if on_crystal(): with collect() indented under it.',
+    solution: 'while not at_goal():\n    move()\n    if on_crystal():\n        collect()\n',
+    maps: [
+      ['###########', '#>.*..*.*E#', '###########'],
+      ['###########', '#>*....*.E#', '###########'],
+      ['###########', '#>..**..*E#', '###########'],
+    ],
+  },
+  {
+    id: 'tunnels', ch: 2, title: 'Twisting tunnels',
+    story: 'The tunnels wind left and right, and they rearrange themselves too. Pixel needs to feel its way: go straight when it can, and turn when it can\'t.',
+    goal: 'One program has to clear both tunnels.',
+    learn: { title: 'elif and else', text: 'elif means "otherwise, if…". else: runs when nothing above it was True. path_ahead(), path_left() and path_right() check for floor in that direction.', code: 'if path_ahead():\n    move()\nelif path_left():\n    turn_left()\nelse:\n    turn_right()' },
+    starter: 'while not at_goal():\n    if path_ahead():\n        move()\n',
+    mem: 7,
+    hint: 'If there\'s a path ahead, move. Elif there\'s a path to the left, turn left. Else, turn right. All of it inside the while loop.',
+    solution: 'while not at_goal():\n    if path_ahead():\n        move()\n    elif path_left():\n        turn_left()\n    else:\n        turn_right()\n',
+    maps: [
+      ['#########', '#>..#####', '###.#####', '###...###', '#####.###', '#E....###', '#########'],
+      ['#########', '#E#######', '#.#######', '#.#...###', '#...#.###', '#####.<##', '#########'],
+    ],
+  },
+  {
+    id: 'alcoves', ch: 3, title: 'Crystal alcoves',
+    story: 'Three crystals hide in little alcoves along the wall. Grabbing one takes seven commands. Instead of writing them three times, teach Pixel a new command. Pixel\'s memory holds 17 lines.',
+    goal: 'Collect all 3 crystals and reach the gate.',
+    learn: { title: 'def: make your own command', text: 'def name(): teaches Pixel a new command made of the indented lines below it. Then you run it like any other command: name()', code: 'def turn_around():\n    turn_left()\n    turn_left()\n\nturn_around()' },
+    starter: 'def grab_alcove():\n    turn_left()\n    move()\n    # finish teaching Pixel how to grab the crystal and come back\n\nmove()\ngrab_alcove()\n',
+    mem: 17,
+    hint: 'grab_alcove() should: turn left, move, collect, turn right twice, move, turn left. Then the main program is moves and grab_alcove() calls.',
+    solution: 'def grab_alcove():\n    turn_left()\n    move()\n    collect()\n    turn_right()\n    turn_right()\n    move()\n    turn_left()\n\nmove()\ngrab_alcove()\nrepeat 3:\n    move()\ngrab_alcove()\nmove()\ngrab_alcove()\nmove()\nmove()\n',
+    maps: [['##########', '##*##**###', '#>......E#', '##########']],
+  },
+  {
+    id: 'heart', ch: 3, title: 'The heart of the Archive',
+    story: 'The Great Compiler sleeps at the center of a labyrinth that redraws itself. Three mazes, one program. Everything you\'ve learned comes together here.',
+    goal: 'Write one program that escapes all 3 mazes.',
+    learn: { title: 'A maze secret', text: 'There\'s an old trick for mazes like these: keep one hand on the wall and never let go. You\'ll always reach the exit.', code: 'while not at_goal():\n    # your maze-walking rules' },
+    starter: 'def step():\n    # decide what Pixel does each step\n    move()\n\nwhile not at_goal():\n    step()\n',
+    mem: 8,
+    hint: 'Right-hand rule: if path_right(), turn right then move. Elif path_ahead(), move. Else turn left. Repeat while not at the goal.',
+    solution: 'while not at_goal():\n    if path_right():\n        turn_right()\n        move()\n    elif path_ahead():\n        move()\n    else:\n        turn_left()\n',
+    maps: [
+      ['#############', '#>..#.....#.#', '###.###.#.#.#', '#.#.....#.#.#', '#.#######.#.#', '#.....#...#.#', '#.###.#.###.#', '#...#......E#', '#############'],
+      ['#############', '#>..#.....#.#', '###.#.###.#.#', '#.#.#...#...#', '#.#.###.###.#', '#.#...#.#...#', '#.###.#.#.###', '#.......#..E#', '#############'],
+      ['#############', '#>....#.....#', '#####.#####.#', '#...#...#...#', '#.#####.#.###', '#.#.....#...#', '#.#.#######.#', '#..........E#', '#############'],
+    ],
+  },
+  {
+    id: 'spikes', ch: 4, title: 'The spike hall',
+    story: 'The Compiler flickers, but its core is missing, locked in the Deep Vault below. Spike traps guard the way, and they flip up or down every time Pixel does anything. Time it wrong and it\'s zap.',
+    goal: 'Cross all 3 versions of the spike hall without getting zapped.',
+    learn: { title: 'wait() and spikes_ahead()', text: 'Every command Pixel runs is one tick, and every tick the spikes flip. wait() lets one tick pass. spikes_ahead() is True if moving forward right now would land Pixel on raised spikes.', code: 'if spikes_ahead():\n    wait()\nelse:\n    move()' },
+    starter: 'while not at_goal():\n    move()\n',
+    mem: 5,
+    hint: 'Inside while not at_goal(): if spikes_ahead(), wait(). Else, move().',
+    solution: 'while not at_goal():\n    if spikes_ahead():\n        wait()\n    else:\n        move()\n',
+    maps: [
+      ['###########', '#>..X....E#', '###########'],
+      ['###########', '#>.xX.x..E#', '###########'],
+      ['###########', '#>Xx..XxXE#', '###########'],
+    ],
+  },
+  {
+    id: 'spiral', ch: 4, title: 'The spiral stair',
+    story: 'A stairway coils down into the dark, sprinkled with crystals. It\'s a long way down, and Pixel\'s memory chip holds only 7 lines. A list of moves will never fit. You need a rule.',
+    goal: 'Spiral to the center and collect every crystal, in both spirals.',
+    learn: { title: 'Think in rules', text: 'Memory limits mean you can\'t list every move. Find one rule that works on every single tile: when can Pixel go forward, and what should it do when it can\'t?', code: '# if I can go ahead, go\n# otherwise, turn' },
+    starter: 'while not at_goal():\n    move()\n',
+    mem: 7,
+    hint: 'while not at_goal(): if path_ahead(), move() and collect if on_crystal(). Else, turn_right().',
+    solution: 'while not at_goal():\n    if path_ahead():\n        move()\n        if on_crystal():\n            collect()\n    else:\n        turn_right()\n',
+    maps: [
+      ['###########', '#>..*.....#', '#########.#', '#.*.....#*#', '#.#####.#.#', '#*#E..*.#.#', '#.#######.#', '#....*....#', '###########'],
+      ['#########', '#>.*....#', '#######.#', '#.*...#*#', '#.###.#.#', '#*#E*.#.#', '#.#####.#', '#...*...#', '#########'],
+    ],
+  },
+  {
+    id: 'cmaze', ch: 4, title: 'The crystal labyrinth',
+    story: 'This labyrinth hides its crystals in dead ends, and the gate stays sealed until Pixel holds every one. Pixel may roll past the gate before it opens, so stopping there would be a mistake.',
+    goal: 'Collect every crystal and escape both labyrinths.',
+    learn: { title: 'while True', text: 'while True: loops forever. That\'s fine here, because the level ends the moment Pixel rolls into an open gate.', code: 'while True:\n    # explore everything' },
+    starter: 'while True:\n    move()\n',
+    mem: 10,
+    hint: 'Use the right-hand rule from the last labyrinth inside while True:, and add if on_crystal(): collect() at the top of the loop.',
+    solution: 'while True:\n    if on_crystal():\n        collect()\n    if path_right():\n        turn_right()\n        move()\n    elif path_ahead():\n        move()\n    else:\n        turn_left()\n',
+    maps: [
+      ['#############', '#>..#*....#*#', '###.###.#.#.#', '#*#...#.#...#', '#.###.#.###.#', '#...#.#...#.#', '#.#.#.###.#.#', '#*#.......#E#', '#############'],
+      ['#############', '#>........#*#', '#########.#.#', '#*#....*#...#', '#.#.#.#####.#', '#.#.#.#...#.#', '#.#.#.#.#.#.#', '#...#...#..E#', '#############'],
+    ],
+  },
+  {
+    id: 'switch', ch: 4, title: 'Spike switchbacks',
+    story: 'The corridors twist left and right, and spikes guard every straight stretch. Pixel has to steer and time its steps with the same program.',
+    goal: 'Clear both twisting spike corridors.',
+    learn: { title: 'Order matters', text: 'In an if / elif chain, Pixel checks each question from the top and runs the first one that\'s True. Put the most urgent danger first.', code: 'if spikes_ahead():\n    wait()\nelif path_ahead():\n    move()' },
+    starter: 'while not at_goal():\n    if path_ahead():\n        move()\n',
+    mem: 9,
+    hint: 'One chain inside the loop: if spikes_ahead() wait, elif path_ahead() move, elif path_left() turn left, else turn right.',
+    solution: 'while not at_goal():\n    if spikes_ahead():\n        wait()\n    elif path_ahead():\n        move()\n    elif path_left():\n        turn_left()\n    else:\n        turn_right()\n',
+    maps: [
+      ['###########', '#>.xX.x..##', '########.##', '##E.xX...##', '###########'],
+      ['###########', '##..xX.x<##', '##.########', '##.X.x...E#', '###########'],
+    ],
+  },
+  {
+    id: 'core', ch: 4, title: 'The Vault core',
+    story: 'The Compiler\'s core waits behind the last gate. Crystals, spikes and twisting halls, and the vault rebuilds itself every time. One program, three vaults, eleven lines of memory.',
+    goal: 'Collect every crystal and reach the core in all 3 vaults.',
+    learn: { title: 'The final trial', text: 'Collecting, timing, steering: everything at once. Plan your if / elif chain before you type. What should Pixel check first?', code: 'while not at_goal():\n    # your best chain of rules' },
+    starter: 'while not at_goal():\n    move()\n',
+    mem: 11,
+    hint: 'One chain: if on_crystal() collect, elif spikes_ahead() wait, elif path_ahead() move, elif path_left() turn left, else turn right.',
+    solution: 'while not at_goal():\n    if on_crystal():\n        collect()\n    elif spikes_ahead():\n        wait()\n    elif path_ahead():\n        move()\n    elif path_left():\n        turn_left()\n    else:\n        turn_right()\n',
+    maps: [
+      ['#############', '#>.*.xX..####', '########.####', '###.*.x..####', '###.#########', '###..X.x*..E#', '#############'],
+      ['#############', '#v###########', '#.###########', '#x###.xX*E###', '#X###.#######', '#..*..#######', '#############'],
+      ['#############', '#.xX.*....###', '#.#######.###', '#*###E..x.###', '#.###########', '#^###########', '#############'],
+    ],
+  },
+];
+
+/* ===== Endless Vault: procedural rooms, each proven solvable by a reference program ===== */
+const REF_SRC = 'while True:\n    if on_crystal():\n        collect()\n    elif path_right():\n        turn_right()\n        while spikes_ahead():\n            wait()\n        move()\n    elif spikes_ahead():\n        wait()\n    elif path_ahead():\n        move()\n    else:\n        turn_left()\n';
+let REF = null;
+const mkRng = sd => { let s = (Math.abs(Math.floor(sd)) % 2147483646) + 1; return () => (s = s * 16807 % 2147483647) / 2147483647; };
+const ri = (r, a, b) => a + Math.floor(r() * (b - a + 1));
+const pick = (r, a) => a[Math.floor(r() * a.length)];
+const shuffle = (r, a) => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const N4 = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+const DIRC = ['^', '>', 'v', '<'];
+function blank(W, H, c) { return Array.from({ length: H }, () => Array(W).fill(c)); }
+function faceToward(g, x, y) { for (let d = 0; d < 4; d++) { const [dx, dy] = DIRS[d]; const c = (g[y + dy] || [])[x + dx]; if (c && c !== '#' && c !== ' ') return d; } return 1; }
+function genPath(r, cw, ch) {
+  for (let a = 0; a < 60; a++) {
+    const g = blank(cw * 2 + 1, ch * 2 + 1, '#');
+    let x = ri(r, 0, cw - 1), y = ri(r, 0, ch - 1);
+    const seen = new Set([x + ',' + y]), cells = [[x, y]];
+    g[y * 2 + 1][x * 2 + 1] = '.';
+    let last = null;
+    while (true) {
+      const nb = N4.filter(([dx, dy]) => { const p = x + dx, q = y + dy; return p >= 0 && q >= 0 && p < cw && q < ch && !seen.has(p + ',' + q); });
+      if (!nb.length) break;
+      const st = last && nb.find(n => n[0] === last[0] && n[1] === last[1]);
+      const [dx, dy] = st && r() < 0.45 ? st : pick(r, nb);
+      g[y * 2 + 1 + dy][x * 2 + 1 + dx] = '.'; x += dx; y += dy; g[y * 2 + 1][x * 2 + 1] = '.';
+      seen.add(x + ',' + y); cells.push([x, y]); last = [dx, dy];
+    }
+    if (cells.length < Math.max(3, Math.ceil(cw * ch * 0.55))) continue;
+    const s = cells[0], e = cells[cells.length - 1];
+    return { g, sx: s[0] * 2 + 1, sy: s[1] * 2 + 1, ex: e[0] * 2 + 1, ey: e[1] * 2 + 1 };
+  }
+  return null;
+}
+function genMaze(r, cw, ch) {
+  const g = blank(cw * 2 + 1, ch * 2 + 1, '#');
+  const seen = new Set(['0,0']), st = [[0, 0]];
+  g[1][1] = '.';
+  while (st.length) {
+    const [x, y] = st[st.length - 1];
+    const nb = N4.map(([dx, dy]) => [x + dx, y + dy, dx, dy]).filter(([p, q]) => p >= 0 && q >= 0 && p < cw && q < ch && !seen.has(p + ',' + q));
+    if (!nb.length) { st.pop(); continue; }
+    const [p, q, dx, dy] = pick(r, nb);
+    g[y * 2 + 1 + dy][x * 2 + 1 + dx] = '.'; g[q * 2 + 1][p * 2 + 1] = '.'; seen.add(p + ',' + q); st.push([p, q]);
+  }
+  const corners = shuffle(r, [[0, 0], [cw - 1, 0], [0, ch - 1], [cw - 1, ch - 1]]);
+  const [s, e] = [corners[0], corners.find(c => c[0] !== corners[0][0] && c[1] !== corners[0][1])];
+  return { g, sx: s[0] * 2 + 1, sy: s[1] * 2 + 1, ex: e[0] * 2 + 1, ey: e[1] * 2 + 1 };
+}
+function genSpiral(r, W, H) {
+  const g = blank(W, H, '#');
+  let x = 1, y = 1, Lb = 1, Rb = W - 2, Tb = 1, Bb = H - 2;
+  g[y][x] = '.';
+  const seg = (dx, dy, n) => { for (let k = 0; k < n; k++) { x += dx; y += dy; g[y][x] = '.'; } };
+  for (let guard = 0; guard < 40; guard++) {
+    if (Rb - x < 1) break; seg(1, 0, Rb - x); Tb += 2;
+    if (Bb - y < 1) break; seg(0, 1, Bb - y); Rb -= 2;
+    if (x - Lb < 1) break; seg(-1, 0, x - Lb); Bb -= 2;
+    if (y - Tb < 1) break; seg(0, -1, y - Tb); Lb += 2;
+  }
+  const out = { g, sx: 1, sy: 1, ex: x, ey: y };
+  if (r() < 0.5) { out.g = g.map(row => row.slice().reverse()); out.sx = W - 2; out.ex = W - 1 - x; }
+  if (r() < 0.5) { out.g = out.g.slice().reverse(); out.sy = H - 2; out.ey = H - 1 - y; }
+  return out;
+}
+function floorList(g, skip) {
+  const out = [];
+  g.forEach((row, j) => row.forEach((c, i) => { if (c === '.' && !skip.some(([a, b]) => a === i && b === j)) out.push([i, j]); }));
+  return out;
+}
+function deadEnds(g) {
+  const out = [];
+  g.forEach((row, j) => row.forEach((c, i) => { if (c === '.' && N4.filter(([dx, dy]) => (g[j + dy] || [])[i + dx] === '.').length === 1) out.push([i, j]); }));
+  return out;
+}
+function verifyRows(rows) {
+  if (!REF) REF = parse(REF_SRC);
+  const W = makeWorld(rows), ctx = { steps: 0, funcs: REF.funcs };
+  try { for (const _ of exec(REF.main, W, ctx, 0)); return { ok: false }; }
+  catch (e) { if (e === WIN) return { ok: true, acts: W.actions }; return { ok: false, zap: !!(e.ev && e.ev.zap), x: W.x, y: W.y }; }
+}
+function buildRoom(r, d, fam) {
+  let base;
+  if (fam === 'maze') base = genMaze(r, Math.min(3 + Math.floor(d / 4), 7), Math.min(3 + Math.floor(d / 7), 5));
+  else if (fam === 'spiral') base = genSpiral(r, Math.min(9 + 2 * Math.floor(d / 6), 15), Math.min(7 + 2 * Math.floor(d / 8), 11));
+  else base = genPath(r, Math.min(3 + Math.floor(d / 3), 7), Math.min(2 + Math.floor(d / 4), 5));
+  if (!base) return null;
+  const { g, sx, sy, ex, ey } = base;
+  const keep = [[sx, sy], [ex, ey]];
+  let nC = fam === 'maze' ? Math.min(1 + Math.floor(d / 3), 6) : ri(r, d < 3 ? 1 : 0, Math.min(2 + Math.floor(d / 2), 7));
+  const pool = fam === 'maze' ? shuffle(r, deadEnds(g).filter(([i, j]) => !keep.some(([a, b]) => a === i && b === j))) : [];
+  for (const p of shuffle(r, floorList(g, keep))) pool.push(p);
+  const used = [];
+  for (const [i, j] of pool) { if (nC <= 0) break; if (used.some(([a, b]) => a === i && b === j)) continue; g[j][i] = '*'; used.push([i, j]); nC--; }
+  if (d >= 4) {
+    let nS = ri(r, 1, Math.min(1 + Math.floor(d / 2), 12));
+    for (const [i, j] of shuffle(r, floorList(g, keep))) {
+      if (nS <= 0) break;
+      if (Math.abs(i - sx) + Math.abs(j - sy) < 2) continue;
+      g[j][i] = r() < 0.5 ? 'x' : 'X'; nS--;
+    }
+  }
+  const voidish = fam === 'path' && d >= 3 && r() < 0.45;
+  const toRows = () => g.map((row, j) => row.map((c, i) => (i === sx && j === sy) ? DIRC[d < 6 ? faceToward(g, sx, sy) : ri(r, 0, 3)] : (i === ex && j === ey) ? 'E' : (c === '#' && voidish) ? ' ' : c).join(''));
+  for (let tries = 0; tries < 30; tries++) {
+    const rows = toRows(), v = verifyRows(rows);
+    if (v.ok) return v.acts < 1500 ? { rows, fam: voidish ? 'bridge' : fam } : null;
+    if (!v.zap) return null;
+    g[v.y][v.x] = '.';
+  }
+  return null;
+}
+const FLAVOR = [
+  'The walls grind and shift as Pixel descends. Nothing down here was built to be easy.',
+  'Something hums in the dark below. The Vault keeps going, deeper than any map.',
+  'These rooms have never existed before. The Vault builds them fresh for every run.',
+  'Old spikes, new tricks. The deeper Pixel goes, the less the Vault forgives.',
+  'Crystal light flickers through cracks in the stone. Another gate, another drop.',
+  'The air is colder here. Pixel\'s wheels click on stone no robot has touched.',
+  'The Vault is watching Pixel\'s code. It builds each room to break the weak ones.',
+];
+function endlessLevel(seed, d) {
+  const r = mkRng(seed * 7919 + d * 104729 + 17);
+  const nRooms = d < 3 ? 1 : d < 8 ? 2 : 3;
+  const fams = d <= 2 ? ['path'] : d <= 5 ? ['path', 'path', 'spiral'] : ['path', 'spiral', 'maze', 'maze'];
+  const maps = [], dark = [], kinds = new Set();
+  let spikes = false, crystals = false;
+  for (let k = 0; k < nRooms; k++) {
+    let room = null;
+    for (let a = 0; a < 40 && !room; a++) room = buildRoom(r, d, pick(r, fams));
+    if (!room) room = { rows: ['#######', '#>...E#', '#######'], fam: 'path' };
+    maps.push(room.rows);
+    kinds.add(room.fam);
+    const dk = d >= 7 && r() < Math.min(0.65, 0.12 + d * 0.025);
+    dark.push(dk);
+    if (room.rows.some(row => /[xX]/.test(row))) spikes = true;
+    if (room.rows.some(row => row.includes('*'))) crystals = true;
+  }
+  const names = { path: 'tunnels', bridge: 'chasm bridges', spiral: 'spirals', maze: 'labyrinths' };
+  const feats = [...kinds].map(k => names[k]).concat(spikes ? ['spikes'] : [], crystals ? ['crystals'] : [], dark.some(Boolean) ? ['dark rooms'] : []);
+  return {
+    id: 'endless', endless: true, ch: 5, depth: d, title: `Depth ${d}`,
+    story: pick(r, FLAVOR),
+    goal: `${nRooms} room${nRooms > 1 ? 's' : ''}: ${feats.join(', ')}.`,
+    learn: { title: 'Endless Vault rules', text: 'Every depth is built at random and gets harder: spikes from depth 4, labyrinths from depth 6, dark rooms from depth 7. You get 3 hearts for the whole run and win one back every 5 depths. No hints. Your code carries over, so build one program that survives anything.', code: '# spikes flip every tick\nif spikes_ahead():\n    wait()' },
+    starter: 'while True:\n    move()\n',
+    mem: Math.max(14, 17 - Math.floor(d / 5)),
+    maps, dark,
+  };
+}
+
+/* ===== UI ===== */
+const $ = s => document.querySelector(s);
+const DEMO = typeof CQ_DEMO !== 'undefined' && CQ_DEMO;
+const FULL_N = LEVELS.length;
+if (DEMO) LEVELS.length = 7;
+const TOTAL = LEVELS.length * 3;
+const SPEEDS = [720, 430, 250, 130, 50, 14];
+const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const COARSE = matchMedia('(pointer: coarse)').matches;
+const C = {
+  sand: ['#e6c28a', '#dfb97f', '#ebca96'], grout: '#b08250', wallTop: '#a5583a', wallHi: '#c97a55', wallFront: '#6a2f1d',
+  chasmA: '#27140d', chasmB: '#110705', tq: '#3fe3d2', tqDeep: '#0f8f86', coral: '#ff7650', cream: '#f8ebd6', dark: '#24120c',
+};
+const STAR = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.6l2.85 6.05 6.65.82-4.9 4.58 1.28 6.6L12 17.4l-5.88 3.25 1.28-6.6-4.9-4.58 6.65-.82z"/></svg>';
+const HEART = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7.5-4.6-9.6-9.2C.9 8.4 3 4.5 6.7 4.5c2.2 0 3.6 1.2 5.3 3.1 1.7-1.9 3.1-3.1 5.3-3.1 3.7 0 5.8 3.9 4.3 7.3C19.5 16.4 12 21 12 21z"/></svg>';
+const BROKEN = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 6.6L9.4 10l2.4 2.6-1.6 3.4 1.2 4.6S3.5 16.4 2.4 11.8C.9 8.4 3 4.5 6.7 4.5c1.8 0 3.1.8 4.3 2.1z"/><path d="M13.4 7.3c1.5-1.6 2.8-2.8 4.9-2.8 3.7 0 5.8 3.9 4.3 7.3-1.6 3.6-7.4 7.5-8.9 8.5l-.9-4.3 1.7-3.4-2.5-2.7z"/></svg>';
+const LOCK = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10V8a5 5 0 0110 0v2h1.5v11h-13V10zm2.5 0h5V8a2.5 2.5 0 00-5 0z"/></svg>';
+const SOUND_ICONS = [
+  '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4zM16.5 9.5l5 5m0-5l-5 5" stroke="currentColor" stroke-width="2" fill="currentColor"/></svg>',
+  '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M16 8.5a5 5 0 010 7M18.5 6a8.5 8.5 0 010 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+  '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18.5a2.5 2.5 0 11-2-2.45V5l12-2.5v13a2.5 2.5 0 11-2-2.45V6.4l-8 1.7z"/></svg>',
+];
+const SOUND_LABELS = ['Sound off', 'Sound effects only', 'Music and sound effects'];
+const S = { done: {}, code: {}, hearts: {}, hinted: {}, cur: 0, speed: 2, sound: 2, endless: { best: 0, seed: 0, depth: 0, hearts: 3, runs: 0 } };
+const CHIPS = [
+  { t: 'move()', k: 'a', from: 0 }, { t: 'turn_left()', k: 'a', from: 1 }, { t: 'turn_right()', k: 'a', from: 1 },
+  { t: 'collect()', k: 'a', from: 2 }, { t: 'wait()', k: 'a', from: 12 }, { t: 'repeat 3:', k: 'b', from: 3 },
+  { t: 'while not at_goal():', k: 'b', from: 7 }, { t: 'while True:', k: 'b', from: 14 }, { t: 'if on_crystal():', k: 'b', from: 8 },
+  { t: 'if path_ahead():', k: 'b', from: 9 }, { t: 'if spikes_ahead():', k: 'b', from: 12 }, { t: 'elif path_left():', k: 'b', from: 9, out: 1 },
+  { t: 'else:', k: 'b', from: 9, out: 1 }, { t: 'path_right()', k: 'e', from: 9 }, { t: 'def my_command():', k: 'b', from: 10 },
+];
+const ed = $('#code'), hl = $('#hl'), gut = $('#gut'), cw = $('#cw'), canvas = $('#world'), dlg = $('#dlg');
+const mainG = canvas.getContext('2d'), tcv = $('#tcv'), tg = tcv.getContext('2d');
+let g = mainG;
+let lvIdx = 0, L = null, W = null, dims = { w: 1, h: 1 }, cssW = 0, cssH = 0, tW = 0, tH = 0, tTop = 0, lastCh = -1;
+let disp = {}, parts = [], bubbles = [], torches = [], gateFlash = 0, shake = 0, hudH = 48;
+let running = false, stopFlag = false, runLine = 0, errLine = 0, titleOn = true, endless = false, curV = 0, onClose = null;
+let seed = 7;
+const rnd = () => (seed = seed * 16807 % 2147483647) / 2147483647;
+const DUST = Array.from({ length: 46 }, () => ({ x: rnd(), y: rnd(), v: 0.4 + rnd(), s: 1 + rnd() * 2, a: 0.08 + rnd() * 0.25, p: rnd() * 6 }));
+const PILLARS = Array.from({ length: 14 }, (_, i) => ({ x: rnd(), w: 0.04 + rnd() * 0.05, h: 0.25 + rnd() * 0.45, layer: i % 3, broken: rnd() > 0.5 }));
+const hash = (i, j) => ((i * 73856093) ^ (j * 19349663)) >>> 0;
+const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+const save = () => { try { localStorage.setItem('codequest-v1', JSON.stringify(S)); } catch (e) { } };
+const wait = ms => new Promise(r => setTimeout(r, ms));
+const ease = k => k < 0.5 ? 2 * k * k : 1 - ((-2 * k + 2) ** 2) / 2;
+const hearts = () => endless ? S.endless.hearts : (S.hearts[L.id] ?? 3);
+function tween(ms, fn) {
+  return new Promise(res => {
+    const t0 = performance.now();
+    const step = now => { const k = Math.min(1, (now - t0) / ms); fn(ease(k), k); if (k < 1 && !stopFlag) requestAnimationFrame(step); else { fn(1, 1); res(); } };
+    requestAnimationFrame(step);
+  });
+}
+
+/* ---------- sound: tiny Web Audio chiptune engine ---------- */
+const AU = { ctx: null, sfx: null, mus: null, noise: null, timer: 0, step: 0, next: 0 };
+function audioInit() {
+  if (AU.ctx) { if (AU.ctx.state === 'suspended') AU.ctx.resume().catch(() => { }); return; }
+  try {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    const c = AU.ctx = new AC(), comp = c.createDynamicsCompressor();
+    comp.connect(c.destination);
+    AU.sfx = c.createGain(); AU.sfx.gain.value = 0.9; AU.sfx.connect(comp);
+    AU.mus = c.createGain(); AU.mus.gain.value = 0; AU.mus.connect(comp);
+    AU.noise = c.createBuffer(1, c.sampleRate * 0.5, c.sampleRate);
+    const d = AU.noise.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    applySound();
+  } catch (e) { AU.ctx = null; }
+}
+function tone(f, dur, o = {}) {
+  const c = AU.ctx;
+  if (!c || (!o.music && S.sound === 0)) return;
+  const t = (o.when ?? c.currentTime) + (o.at || 0), osc = c.createOscillator(), gn = c.createGain(), v = o.vol ?? 0.1;
+  osc.type = o.type || 'square';
+  osc.frequency.setValueAtTime(f, t);
+  if (o.to) osc.frequency.exponentialRampToValueAtTime(o.to, t + dur);
+  gn.gain.setValueAtTime(0.0001, t);
+  gn.gain.exponentialRampToValueAtTime(v, t + Math.min(0.012, dur / 4));
+  gn.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  osc.connect(gn); gn.connect(o.music ? AU.mus : AU.sfx);
+  osc.start(t); osc.stop(t + dur + 0.03);
+}
+function noise(dur, o = {}) {
+  const c = AU.ctx;
+  if (!c || (!o.music && S.sound === 0)) return;
+  const t = (o.when ?? c.currentTime) + (o.at || 0), src = c.createBufferSource(), f = c.createBiquadFilter(), gn = c.createGain();
+  src.buffer = AU.noise; f.type = o.ft || 'highpass'; f.frequency.value = o.freq || 2000;
+  gn.gain.setValueAtTime(o.vol ?? 0.08, t); gn.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  src.connect(f); f.connect(gn); gn.connect(o.music ? AU.mus : AU.sfx);
+  src.start(t); src.stop(t + dur + 0.03);
+}
+const SFX = {
+  click: () => tone(660, 0.04, { vol: 0.05 }),
+  move: () => tone(330, 0.08, { type: 'triangle', to: 420, vol: 0.13 }),
+  turn: () => tone(560, 0.05, { vol: 0.04 }),
+  wait: () => { tone(240, 0.06, { type: 'triangle', vol: 0.08 }); tone(200, 0.06, { type: 'triangle', vol: 0.07, at: 0.08 }); },
+  collect: () => [988, 1319, 1976].forEach((f, i) => tone(f, 0.13, { type: 'sine', vol: 0.12, at: i * 0.055 })),
+  open: () => [523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, 0.16, { vol: 0.06, at: 0.15 + i * 0.07 })),
+  bump: () => { tone(130, 0.22, { to: 50, vol: 0.2 }); noise(0.14, { freq: 500, ft: 'lowpass', vol: 0.25 }); },
+  zap: () => { tone(1100, 0.3, { type: 'sawtooth', to: 110, vol: 0.11 }); noise(0.3, { freq: 3000, vol: 0.12 }); },
+  fall: () => tone(800, 0.8, { type: 'sine', to: 55, vol: 0.16 }),
+  hurt: () => [392, 330, 247].forEach((f, i) => tone(f, 0.15, { at: i * 0.11, vol: 0.1 })),
+  over: () => [392, 370, 349, 330, 262, 196].forEach((f, i) => tone(f, i === 5 ? 1 : 0.24, { type: 'triangle', at: i * 0.22, vol: 0.16 })),
+  win: () => { [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.14, { at: i * 0.09, vol: 0.08 })); [1047, 1319, 1568].forEach(f => tone(f, 0.7, { type: 'triangle', at: 0.38, vol: 0.06 })); },
+  star: n => { tone(880 * Math.pow(1.26, n), 0.2, { type: 'sine', vol: 0.14 }); tone(1760 * Math.pow(1.26, n), 0.14, { type: 'triangle', vol: 0.05, at: 0.03 }); },
+  dud: () => tone(150, 0.25, { type: 'triangle', vol: 0.1 }),
+  error: () => { tone(196, 0.09, { vol: 0.08 }); tone(165, 0.13, { vol: 0.08, at: 0.1 }); },
+  start: () => { tone(160, 0.55, { type: 'sawtooth', to: 900, vol: 0.05 }); [440, 554, 659, 880].forEach((f, i) => tone(f, 0.35, { type: 'triangle', at: 0.4 + i * 0.09, vol: 0.09 })); },
+};
+const mtof = m => 440 * Math.pow(2, (m - 69) / 12);
+const SONG = { bass: [45, 41, 48, 43], chords: [[57, 60, 64], [53, 57, 60], [48, 52, 55], [55, 59, 62]], lead: [76, 0, 74, 72, 0, 71, 72, 0, 69, 0, 72, 0, 74, 0, 71, 0] };
+function musicTick() {
+  const c = AU.ctx;
+  if (!c) return;
+  while (AU.next < c.currentTime + 0.3) {
+    const s = AU.step, bar = Math.floor(s / 8) % 4, b = s % 8, t = AU.next, o = { when: t, music: true };
+    if (b === 0 || b === 4) tone(mtof(SONG.bass[bar]), 0.55, { ...o, type: 'triangle', vol: 0.3 });
+    if (b === 6) tone(mtof(SONG.bass[bar] + 7), 0.2, { ...o, type: 'triangle', vol: 0.2 });
+    tone(mtof(SONG.chords[bar][[0, 1, 2, 1, 2, 1, 0, 2][b]] + 12), 0.15, { ...o, vol: 0.03 });
+    const phrase = Math.floor(s / 32) % 2, ln = SONG.lead[(s % 16)];
+    if (phrase && ln && b % 2 === 0) tone(mtof(ln), 0.34, { ...o, type: 'triangle', vol: 0.06 });
+    if (b % 2 === 1) noise(0.04, { ...o, freq: 7000, vol: 0.03 });
+    if (b === 4) noise(0.09, { ...o, freq: 1200, ft: 'bandpass', vol: 0.06 });
+    AU.step++; AU.next += 0.2;
+  }
+}
+function applySound() {
+  const b = $('#soundBtn');
+  b.innerHTML = SOUND_ICONS[S.sound]; b.setAttribute('aria-label', SOUND_LABELS[S.sound]); b.title = SOUND_LABELS[S.sound];
+  if (!AU.ctx) return;
+  const on = S.sound === 2;
+  AU.mus.gain.setTargetAtTime(on ? 0.55 : 0, AU.ctx.currentTime, 0.15);
+  if (on && !AU.timer) { AU.next = AU.ctx.currentTime + 0.1; AU.timer = setInterval(musicTick, 60); }
+  if (!on && AU.timer) { clearInterval(AU.timer); AU.timer = 0; }
+}
+
+/* ---------- drawing ---------- */
+function ell(x, y, rx, ry, col) { g.fillStyle = col; g.beginPath(); g.ellipse(x, y, Math.max(rx, 0.1), Math.max(ry, 0.1), 0, 0, Math.PI * 2); g.fill(); }
+function poly(pts, col) { g.fillStyle = col; g.beginPath(); pts.forEach(([x, y], i) => i ? g.lineTo(x, y) : g.moveTo(x, y)); g.closePath(); g.fill(); }
+function rrect(x, y, w, h, r, col) { g.fillStyle = col; g.beginPath(); g.roundRect(x, y, w, h, r); g.fill(); }
+function glow(x, y, r, col, a) { const gr = g.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, `rgba(${col},${a})`); gr.addColorStop(1, `rgba(${col},0)`); g.fillStyle = gr; g.fillRect(x - r, y - r, r * 2, r * 2); }
+function sandTile(x, y, T, k) {
+  const p = Math.max(1, T * 0.035);
+  g.fillStyle = C.grout; g.fillRect(x, y, T, T);
+  g.fillStyle = C.sand[k % 3]; g.fillRect(x + p, y + p, T - 2 * p, T - 2 * p);
+  g.fillStyle = 'rgba(255,244,220,.4)'; g.fillRect(x + p, y + p, T - 2 * p, p * 1.3);
+  if (k % 4 === 0) { g.fillStyle = 'rgba(130,80,40,.22)'; g.fillRect(x + T * (0.2 + (k % 7) / 14), y + T * 0.62, T * 0.1, T * 0.05); }
+}
+function floorTile(x, y, T, i, j) {
+  sandTile(x, y, T, hash(i, j));
+  if (tileAt(W, i, j - 1) === '#') { const gr = g.createLinearGradient(0, y, 0, y + T * 0.22); gr.addColorStop(0, 'rgba(70,30,15,.35)'); gr.addColorStop(1, 'rgba(70,30,15,0)'); g.fillStyle = gr; g.fillRect(x, y, T, T * 0.22); }
+}
+function cliff(x, y, T) {
+  const gr = g.createLinearGradient(0, y, 0, y + T * 0.42);
+  gr.addColorStop(0, '#a46b3b'); gr.addColorStop(1, 'rgba(80,40,20,0)');
+  g.fillStyle = gr; g.fillRect(x, y, T, T * 0.42);
+  g.fillStyle = 'rgba(60,25,10,.35)'; g.fillRect(x, y + T * 0.12, T, Math.max(1, T * 0.03));
+}
+function wall(x, y, T, i, j) {
+  const lift = T * 0.28;
+  if (tileAt(W, i, j + 1) !== '#') { g.fillStyle = C.wallFront; g.fillRect(x, y + T - lift, T, lift); g.fillStyle = 'rgba(0,0,0,.18)'; g.fillRect(x, y + T - lift * 0.35, T, lift * 0.35); }
+  g.fillStyle = C.wallTop; g.fillRect(x, y - lift, T, T);
+  g.fillStyle = 'rgba(60,20,8,.28)';
+  const lw = Math.max(1, T * 0.03), off = j % 2 ? 0.25 : 0.75;
+  g.fillRect(x, y - lift + T * 0.5, T, lw);
+  g.fillRect(x + T * off, y - lift, lw, T * 0.5); g.fillRect(x + T * ((off + 0.5) % 1), y - lift + T * 0.5, lw, T * 0.5);
+  if (tileAt(W, i, j - 1) !== '#') { g.fillStyle = C.wallHi; g.fillRect(x, y - lift, T, Math.max(2, T * 0.07)); }
+  if (tileAt(W, i - 1, j) !== '#') { g.fillStyle = 'rgba(255,200,160,.12)'; g.fillRect(x, y - lift, Math.max(1, T * 0.05), T); }
+}
+function spikeH(c) { const a = spikeUp(c, disp.st - 1) ? 1 : 0, b = spikeUp(c, disp.st) ? 1 : 0; return a + (b - a) * disp.sk; }
+function spikes(x, y, T, c) {
+  const h = spikeH(c), m = T * 0.12;
+  rrect(x + m, y + m, T - 2 * m, T - 2 * m, T * 0.06, h > 0.5 ? '#6e4038' : '#5f5048');
+  g.strokeStyle = h > 0.5 ? 'rgba(255,90,70,.7)' : 'rgba(0,0,0,.25)'; g.lineWidth = Math.max(1, T * 0.025);
+  g.beginPath(); g.roundRect(x + m, y + m, T - 2 * m, T - 2 * m, T * 0.06); g.stroke();
+  for (let a = 0; a < 3; a++) for (let b = 0; b < 3; b++) {
+    const px = x + T * (0.28 + a * 0.22), py = y + T * (0.32 + b * 0.2), bw = T * 0.07;
+    ell(px, py, bw, bw * 0.45, '#2a1712');
+    if (h > 0.03) {
+      const top = py - T * 0.3 * h;
+      poly([[px - bw, py], [px, top], [px, py + bw * 0.3]], '#efe9df');
+      poly([[px + bw, py], [px, top], [px, py + bw * 0.3]], '#9d958b');
+    }
+  }
+}
+function crystal(cx, cy, T, t, sd) {
+  const b = REDUCED ? 0 : Math.sin(t / 380 + sd) * T * 0.045, s = T * 0.19;
+  ell(cx, cy + T * 0.24, s * 0.9, s * 0.3, 'rgba(70,35,10,.3)');
+  glow(cx, cy - s * 0.2 + b, s * 2.6, '63,227,210', 0.42);
+  const top = cy - s * 1.4 + b, mid = cy - s * 0.25 + b, bot = cy + s * 0.95 + b, l = cx - s * 0.85, r = cx + s * 0.85;
+  poly([[cx, top], [r, mid], [cx, bot], [l, mid]], C.tqDeep);
+  poly([[cx, top], [cx, bot], [l, mid]], '#55e9da');
+  poly([[cx, top], [r, mid], [cx, mid + s * 0.15]], '#b5fff6');
+  poly([[l, mid], [cx, mid + s * 0.15], [cx, top]], '#e6fffb');
+}
+function archPath(cx, base, w, h) { const r = w / 2; g.beginPath(); g.moveTo(cx - r, base); g.lineTo(cx - r, base - h + r); g.arc(cx, base - h + r, r, Math.PI, 0); g.lineTo(cx + r, base); g.closePath(); }
+function gate(cx, cy, T, t, open, flash) {
+  const base = cy + T * 0.3, w = T * 0.6, h = T * 0.98;
+  ell(cx, base, w * 0.7, T * 0.09, 'rgba(50,20,8,.4)');
+  archPath(cx, base, w, h);
+  if (open) {
+    const gr = g.createRadialGradient(cx, base - h * 0.45, 0, cx, base - h * 0.45, w);
+    gr.addColorStop(0, '#e9fffc'); gr.addColorStop(0.35, C.tq); gr.addColorStop(1, '#0b6d67');
+    g.fillStyle = gr; g.fill();
+    g.save(); archPath(cx, base, w, h); g.clip();
+    g.strokeStyle = 'rgba(255,255,255,.45)'; g.lineWidth = Math.max(1.5, T * 0.035);
+    const sp = REDUCED ? 0 : t / 520;
+    for (let k = 0; k < 3; k++) { g.beginPath(); g.arc(cx, base - h * 0.45, w * (0.18 + k * 0.17), sp + k * 2, sp + k * 2 + 2.3); g.stroke(); }
+    g.restore();
+    if (flash > 0) { g.globalAlpha = flash; glow(cx, base - h * 0.45, T * 1.5, '180,255,248', 0.9); g.globalAlpha = 1; }
+  } else { g.fillStyle = '#2a120b'; g.fill(); }
+  g.lineWidth = Math.max(3, T * 0.11); g.strokeStyle = '#c98a5a'; archPath(cx, base, w, h); g.stroke();
+  g.lineWidth = Math.max(1, T * 0.03); g.strokeStyle = '#7a4328'; archPath(cx, base, w * 0.84, h * 0.9); g.stroke();
+  rrect(cx - T * 0.07, base - h - T * 0.05, T * 0.14, T * 0.14, T * 0.03, '#e0a676');
+  if (!open) { ell(cx, base - h * 0.5, T * 0.07, T * 0.07, '#8a5a40'); rrect(cx - T * 0.025, base - h * 0.5, T * 0.05, T * 0.14, 2, '#8a5a40'); }
+}
+function torch(x, y, T, t, k) {
+  rrect(x - T * 0.035, y - T * 0.02, T * 0.07, T * 0.2, T * 0.02, '#3b2216');
+  rrect(x - T * 0.08, y - T * 0.06, T * 0.16, T * 0.06, T * 0.02, '#5a3424');
+  const f = REDUCED ? 1 : 0.85 + 0.15 * Math.sin(t / 70 + k) * Math.sin(t / 113 + k * 2);
+  poly([[x - T * 0.06, y - T * 0.06], [x, y - T * 0.24 * f], [x + T * 0.06, y - T * 0.06]], '#ff8a3c');
+  poly([[x - T * 0.03, y - T * 0.06], [x, y - T * 0.16 * f], [x + T * 0.03, y - T * 0.06]], '#ffe08a');
+}
+function robot(cx, cy, T, t) {
+  const s = T * 0.34 * disp.scale;
+  if (s < 0.6 || disp.alpha <= 0.02) return;
+  g.save(); g.translate(cx, cy + T * 0.04); g.globalAlpha = disp.alpha;
+  if (disp.hurt > 0) glow(0, -s * 0.3, s * 2.2, '255,70,50', 0.6 * disp.hurt);
+  ell(0, T * 0.27, s * 0.95, s * 0.28, 'rgba(50,22,10,.32)');
+  g.rotate(disp.tilt || 0);
+  g.translate(0, REDUCED ? 0 : Math.sin(t / 260) * s * 0.04);
+  const f = ((Math.round(disp.ang / (Math.PI / 2)) % 4) + 4) % 4;
+  rrect(-s * 0.85, s * 0.42, s * 1.7, s * 0.42, s * 0.2, '#4a2a1f');
+  for (let k = -2; k <= 2; k++) ell(k * s * 0.34, s * 0.63, s * 0.09, s * 0.09, '#7b5040');
+  const bg = g.createLinearGradient(0, -s * 0.2, 0, s * 0.6); bg.addColorStop(0, '#fff6e6'); bg.addColorStop(1, '#d9c3a2');
+  rrect(-s * 0.74, -s * 0.22, s * 1.48, s * 0.8, s * 0.26, bg);
+  if (f === 0) rrect(-s * 0.36, -s * 0.05, s * 0.72, s * 0.42, s * 0.08, '#c9b18e');
+  else { g.globalAlpha = disp.alpha * (0.65 + 0.35 * Math.sin(t / 300)); ell(0, s * 0.18, s * 0.13, s * 0.13, C.coral); g.globalAlpha = disp.alpha; }
+  const hg = g.createLinearGradient(0, -s * 1.15, 0, -s * 0.25); hg.addColorStop(0, '#fffaf0'); hg.addColorStop(1, '#e8d6b8');
+  rrect(-s * 0.68, -s * 1.15, s * 1.36, s * 0.92, s * 0.36, hg);
+  g.strokeStyle = '#6b4a38'; g.lineWidth = Math.max(1.5, s * 0.08);
+  g.beginPath(); g.moveTo(0, -s * 1.15); g.lineTo(0, -s * 1.42); g.stroke();
+  ell(0, -s * 1.5, s * 0.13, s * 0.13, running ? '#ffd27a' : C.coral);
+  const blink = !REDUCED && (t % 3200) < 120 ? 0.2 : 1, eye = disp.hurt > 0.3 ? '#ff5a4e' : C.tq;
+  if (f === 0) {
+    rrect(-s * 0.42, -s * 0.95, s * 0.84, s * 0.5, s * 0.14, '#d6bf9c');
+    g.fillStyle = '#a88a68'; for (let k = 0; k < 3; k++) g.fillRect(-s * 0.3, -s * (0.85 - k * 0.14), s * 0.6, s * 0.05);
+  } else {
+    const shift = f === 1 ? s * 0.16 : f === 3 ? -s * 0.16 : 0, vw = f === 2 ? s * 1.0 : s * 0.84;
+    rrect(-vw / 2 + shift, -s * 0.98, vw, s * 0.56, s * 0.22, C.dark);
+    const eh = s * 0.24 * blink, ey = -s * 0.7 - eh / 2;
+    if (f === 2) { rrect(-s * 0.3, ey, s * 0.16, eh, s * 0.06, eye); rrect(s * 0.14, ey, s * 0.16, eh, s * 0.06, eye); }
+    else { const ex = f === 1 ? s * 0.2 : -s * 0.36; rrect(ex, ey, s * 0.16, eh, s * 0.06, eye); rrect(ex + (f === 1 ? -s * 0.3 : s * 0.3), ey + eh * 0.1, s * 0.11, eh * 0.8, s * 0.05, 'rgba(63,227,210,.55)'); }
+    if (f !== 2) ell(f === 1 ? -s * 0.6 : s * 0.6, -s * 0.68, s * 0.1, s * 0.16, '#c9b18e');
+  }
+  g.restore();
+  if (!disp.noArrow && disp.scale > 0.5 && disp.alpha > 0.5) {
+    g.save(); g.translate(cx, cy); g.rotate(disp.ang); g.translate(0, -T * 0.74);
+    poly([[0, -T * 0.1], [T * 0.12, T * 0.04], [0, 0], [-T * 0.12, T * 0.04]], C.coral);
+    g.restore();
+  }
+}
+function draw(t, dt) {
+  if (!W || !cssW) return;
+  const w = cssW, h = cssH;
+  const bg = g.createLinearGradient(0, 0, 0, h); bg.addColorStop(0, C.chasmA); bg.addColorStop(1, C.chasmB);
+  g.fillStyle = bg; g.fillRect(0, 0, w, h);
+  for (const d of DUST) {
+    const x = (d.x * w + (REDUCED ? 0 : Math.sin(t / 2600 + d.p) * 10) + w) % w, y = ((d.y * h - (REDUCED ? 0 : t * d.v * 0.006)) % h + h) % h;
+    g.globalAlpha = d.a; g.fillStyle = C.tq; g.fillRect(x, y, d.s, d.s);
+  }
+  g.globalAlpha = 1;
+  const T = Math.min(78, w / (W.w + 0.2), (h - hudH) / (W.h + 0.5));
+  const sx = shake > 0 ? (Math.random() - 0.5) * shake * T * 0.14 : 0, sy = shake > 0 ? (Math.random() - 0.5) * shake * T * 0.1 : 0;
+  const ox = (w - T * W.w) / 2 + sx, oy = hudH + (h - hudH - T * W.h) / 2 + T * 0.12 + sy;
+  for (let j = 0; j < W.h; j++) for (let i = 0; i < W.w; i++) if (walkable(W.grid[j][i])) floorTile(ox + i * T, oy + j * T, T, i, j);
+  for (let j = 0; j < W.h; j++) for (let i = 0; i < W.w; i++) if (walkable(W.grid[j][i]) && tileAt(W, i, j + 1) === ' ') cliff(ox + i * T, oy + (j + 1) * T, T);
+  const ry = Math.round(disp.y), open = W.got === W.total;
+  for (let j = 0; j < W.h; j++) {
+    for (let i = 0; i < W.w; i++) if (W.grid[j][i] === '#') wall(ox + i * T, oy + j * T, T, i, j);
+    for (const tc of torches) if (tc.j === j) torch(ox + (tc.i + 0.5) * T, oy + (tc.j + 0.82) * T, T, t, tc.i);
+    for (let i = 0; i < W.w; i++) {
+      const c = W.grid[j][i], cx = ox + (i + 0.5) * T, cy = oy + (j + 0.5) * T;
+      if (c === '*') crystal(cx, cy, T, t, i * 1.7 + j);
+      else if (c === 'E') gate(cx, cy, T, t, open, gateFlash);
+      else if (isSpike(c)) spikes(ox + i * T, oy + j * T, T, c);
+    }
+    if (j === ry) robot(ox + (disp.x + 0.5 + disp.ox) * T, oy + (disp.y + 0.5 + disp.oy) * T, T, t);
+  }
+  parts = parts.filter(p => (p.life += dt) < p.max);
+  for (const p of parts) {
+    const k = p.life / p.max; p.x += p.vx * dt / 16; p.y += p.vy * dt / 16; p.vy += 0.0009 * dt / 16 * (p.g || 0);
+    const px = ox + p.x * T, py = oy + p.y * T, r = p.r * T * (1 - k * 0.6);
+    g.globalAlpha = 1 - k;
+    if (p.kind === 'star') poly([[px, py - r], [px + r * 0.35, py - r * 0.35], [px + r, py], [px + r * 0.35, py + r * 0.35], [px, py + r], [px - r * 0.35, py + r * 0.35], [px - r, py], [px - r * 0.35, py - r * 0.35]], p.col);
+    else poly([[px, py - r * 1.3], [px + r * 0.8, py], [px, py + r * 1.1], [px - r * 0.8, py]], p.col);
+  }
+  g.globalAlpha = 1;
+  const rx = ox + (disp.x + 0.5) * T, rY = oy + (disp.y + 0.5) * T;
+  const vg = g.createRadialGradient(rx, rY, T * 1.4, rx, rY, Math.max(w, h) * 0.85);
+  vg.addColorStop(0, 'rgba(12,4,2,0)'); vg.addColorStop(1, 'rgba(12,4,2,.5)');
+  g.fillStyle = vg; g.fillRect(0, 0, w, h);
+  g.globalCompositeOperation = 'lighter';
+  for (const tc of torches) glow(ox + (tc.i + 0.5) * T, oy + (tc.j + 0.7) * T, T * 1.6, '255,130,50', REDUCED ? 0.16 : 0.13 + 0.04 * Math.sin(t / 90 + tc.i));
+  if (open) glow(ox + (W.ex + 0.5) * T, oy + (W.ey + 0.4) * T, T * 1.3, '63,227,210', 0.18);
+  glow(rx, rY - T * 0.1, T * 0.9, '63,227,210', 0.08);
+  g.globalCompositeOperation = 'source-over';
+  if (L.dark && L.dark[curV]) {
+    const fr = g.createRadialGradient(rx, rY, T * 1.2, rx, rY, T * 2.6);
+    fr.addColorStop(0, 'rgba(6,2,1,0)'); fr.addColorStop(1, 'rgba(6,2,1,.97)');
+    g.fillStyle = fr; g.fillRect(0, 0, w, h);
+    g.globalCompositeOperation = 'lighter';
+    glow(ox + (W.ex + 0.5) * T, oy + (W.ey + 0.4) * T, T * 0.9, '63,227,210', open ? 0.4 : 0.14);
+    g.globalCompositeOperation = 'source-over';
+  }
+  bubbles = bubbles.filter(b => (b.life += dt) < b.max);
+  for (const b of bubbles) {
+    const k = b.life / b.max, bx = ox + (disp.x + 0.5 + disp.ox) * T, by = oy + (disp.y - 0.15 + disp.oy) * T - k * T * 0.2;
+    g.globalAlpha = k > 0.75 ? (1 - k) * 4 : 1;
+    g.font = `700 ${Math.max(13, T * 0.26)}px Rubik, system-ui, sans-serif`;
+    const tw = g.measureText(b.text).width + T * 0.24, th = Math.max(20, T * 0.38);
+    rrect(bx - tw / 2, by - th, tw, th, th / 2, b.col || C.cream);
+    g.fillStyle = C.dark; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(b.text, bx, by - th / 2 + 1);
+  }
+  g.globalAlpha = 1;
+  if (gateFlash > 0) gateFlash = Math.max(0, gateFlash - dt / 900);
+  if (shake > 0) shake = Math.max(0, shake - dt / 380);
+}
+function drawTitle(t) {
+  if (!tW) return;
+  const w = tW, h = tH, prevD = disp;
+  g = tg;
+  const sky = g.createLinearGradient(0, 0, 0, h); sky.addColorStop(0, '#41200f'); sky.addColorStop(0.55, '#1c0c07'); sky.addColorStop(1, '#0c0402');
+  g.fillStyle = sky; g.fillRect(0, 0, w, h);
+  const floorY = h * 0.91, T = Math.max(70, Math.min(w * 0.4, h * 0.42, (floorY - tTop - 20) / 1.02)), cx = w / 2;
+  for (const p of PILLARS) {
+    const col = ['#4a2414', '#341a0f', '#24110a'][p.layer], pw = p.w * w * (0.6 + p.layer * 0.25), ph = p.h * h * (0.7 + p.layer * 0.2);
+    const px = p.x * w - pw / 2, top = floorY - ph;
+    if (Math.abs(p.x * w - cx) < T * 0.55) continue;
+    g.fillStyle = col; g.fillRect(px, top, pw, ph);
+    g.fillRect(px - pw * 0.15, top, pw * 1.3, pw * 0.25);
+    if (p.broken) poly([[px - pw * 0.15, top], [px + pw * 0.4, top - pw * 0.5], [px + pw * 1.15, top]], col);
+  }
+  for (const d of DUST) {
+    const x = (d.x * w + (REDUCED ? 0 : Math.sin(t / 2600 + d.p) * 14) + w) % w, y = ((d.y * h - (REDUCED ? 0 : t * d.v * 0.01)) % h + h) % h;
+    g.globalAlpha = d.a * 1.4; g.fillStyle = C.tq; g.fillRect(x, y, d.s * 1.4, d.s * 1.4);
+  }
+  g.globalAlpha = 1;
+  const TT = Math.max(28, Math.min(64, w / 14));
+  for (let x = -((w / 2) % TT) - TT, k = 0; x < w + TT; x += TT, k++) for (let r = 0; r < 3; r++) sandTile(x, floorY + r * TT, TT, hash(k, r));
+  const fg = g.createLinearGradient(0, floorY, 0, h); fg.addColorStop(0, 'rgba(12,4,2,.1)'); fg.addColorStop(1, 'rgba(12,4,2,.75)');
+  g.fillStyle = fg; g.fillRect(0, floorY, w, h - floorY);
+  const orbit = k => { const a = (REDUCED ? 0 : t / 2400) + k * Math.PI * 2 / 5; return { x: cx + Math.cos(a) * T * 0.75, y: floorY - T * 0.55 + Math.sin(a) * T * 0.14, z: Math.sin(a) }; };
+  for (let k = 0; k < 5; k++) { const o = orbit(k); if (o.z < 0) crystal(o.x, o.y, T * 0.42, t, k); }
+  gate(cx, floorY - T * 0.3, T, t, true, 0);
+  for (const sgn of [-1, 1]) { const x = cx + sgn * T * 0.62, y = floorY - T * 0.5; rrect(x - T * 0.06, y, T * 0.12, T * 0.5, 4, '#5a2e1d'); torch(x, y + T * 0.02, T * 0.8, t, sgn + 3); }
+  disp = { ang: Math.PI, scale: 1, alpha: 1, tilt: 0, noArrow: true, hurt: 0 };
+  robot(cx, floorY - T * 0.13, T * 0.42, t);
+  disp = prevD;
+  for (let k = 0; k < 5; k++) { const o = orbit(k); if (o.z >= 0) crystal(o.x, o.y, T * 0.42, t, k); }
+  g.globalCompositeOperation = 'lighter';
+  glow(cx, floorY - T * 0.45, T * 1.1, '63,227,210', 0.22);
+  for (const sgn of [-1, 1]) glow(cx + sgn * T * 0.62, floorY - T * 0.6, T * 0.6, '255,130,50', 0.2);
+  g.globalCompositeOperation = 'source-over';
+  g = mainG;
+}
+let lastT = performance.now();
+function frame(now) {
+  const dt = Math.min(50, now - lastT); lastT = now;
+  try { if (titleOn) drawTitle(now); else draw(now, dt); } catch (e) { g = mainG; }
+  requestAnimationFrame(frame);
+}
+function spawn(x, y, n, col, kind, spread) {
+  for (let k = 0; k < n; k++) parts.push({ x: x + 0.5, y: y + 0.35, vx: (Math.random() - 0.5) * spread, vy: -Math.random() * spread - 0.01, life: 0, max: 600 + Math.random() * 500, col, kind, r: 0.05 + Math.random() * 0.06, g: kind === 'star' ? 0 : 1 });
+}
+const bubble = (text, col) => bubbles.push({ text, col, life: 0, max: 1100 });
+
+/* ---------- sizing ---------- */
+function sizeStage() {
+  const st = $('#stage'), wpx = st.clientWidth;
+  if (!wpx) return;
+  const ratio = (dims.h + 0.5) / (dims.w + 0.2);
+  measureHud();
+  const h = Math.round(Math.max(230, Math.min(wpx * ratio + hudH, 560, innerHeight * 0.66)));
+  if (Math.abs(st.clientHeight - h) > 1) st.style.height = h + 'px';
+  const dpr = Math.min(2, devicePixelRatio || 1);
+  cssW = wpx; cssH = h;
+  canvas.width = Math.round(wpx * dpr); canvas.height = Math.round(h * dpr);
+  mainG.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+function measureHud() { const el = $('.hud'); hudH = el ? el.getBoundingClientRect().height + 16 : 48; }
+function sizeTitle() {
+  const r = tcv.getBoundingClientRect(), dpr = Math.min(2, devicePixelRatio || 1);
+  tW = r.width; tH = r.height;
+  tTop = $('.tin').getBoundingClientRect().bottom - r.top;
+  tcv.width = Math.round(tW * dpr); tcv.height = Math.round(tH * dpr);
+  tg.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+
+/* ---------- editor ---------- */
+const KW = new Set(KEYWORDS);
+function hilite(line, fnames) {
+  const ci = line.indexOf('#'), code = ci >= 0 ? line.slice(0, ci) : line, com = ci >= 0 ? line.slice(ci) : '';
+  let out = '';
+  code.replace(/([A-Za-z_]\w*)|(\d+)|([^A-Za-z_\d]+)/g, (m, w, n, o) => {
+    if (n) out += `<i class="n">${n}</i>`;
+    else if (o) out += esc(o);
+    else if (KW.has(w)) out += `<i class="k">${w}</i>`;
+    else if (ACTIONS.includes(w)) out += `<i class="a">${w}</i>`;
+    else if (SENSORS.includes(w)) out += `<i class="q">${w}</i>`;
+    else if (fnames.has(w)) out += `<i class="f">${w}</i>`;
+    else out += esc(w);
+    return m;
+  });
+  return out + (com ? `<i class="c">${esc(com)}</i>` : '');
+}
+function refreshEditor() {
+  const lines = ed.value.split('\n');
+  const fnames = new Set([...ed.value.matchAll(/^\s*def\s+([A-Za-z_]\w*)/gm)].map(m => m[1]));
+  const cls = i => (i + 1 === runLine ? ' run' : '') + (i + 1 === errLine ? ' err' : '');
+  hl.innerHTML = lines.map((l, i) => `<span class="l${cls(i)}">${hilite(l, fnames) || ' '}</span>`).join('');
+  gut.innerHTML = lines.map((_, i) => `<span class="${cls(i)}">${i + 1}</span>`).join('');
+  cw.style.height = (Math.max(lines.length + 1, 9) * 24 + 26) + 'px';
+  hl.scrollLeft = ed.scrollLeft;
+  const n = codeLines(ed.value), el = $('#mem');
+  if (L.mem) {
+    const over = n > L.mem;
+    el.innerHTML = `<span>Memory ${n} / ${L.mem} lines</span><span class="cells">${Array.from({ length: L.mem }, (_, i) => `<i class="${i < n ? 'f' : ''}"></i>`).join('')}</span>`;
+    el.className = over ? 'over' : n === L.mem ? 'full' : '';
+  } else { el.innerHTML = `<span>${n} line${n === 1 ? '' : 's'} · no memory limit</span>`; el.className = ''; }
+}
+function insert(text) {
+  if (COARSE && document.activeElement !== ed) ed.setRangeText(text, ed.selectionStart, ed.selectionEnd, 'end');
+  else { ed.focus(); if (!document.execCommand('insertText', false, text)) ed.setRangeText(text, ed.selectionStart, ed.selectionEnd, 'end'); }
+  onEdit();
+}
+function lineInfo() {
+  const v = ed.value, p = ed.selectionStart, ls = v.lastIndexOf('\n', p - 1) + 1;
+  let le = v.indexOf('\n', p); if (le < 0) le = v.length;
+  return { v, p, ls, le, line: v.slice(ls, le), ind: v.slice(ls, le).match(/^ */)[0] };
+}
+function insertChip(c) {
+  if (running) return;
+  SFX.click();
+  if (c.k === 'e') { insert(c.t); return; }
+  const { ls, le, line, ind } = lineInfo();
+  let indent = ind, text;
+  if (!line.trim()) { if (c.out) indent = ind.slice(4); ed.setSelectionRange(ls, le); text = indent + c.t; }
+  else { indent = line.trimEnd().endsWith(':') ? ind + '    ' : ind; if (c.out) indent = ind.slice(4); ed.setSelectionRange(le, le); text = '\n' + indent + c.t; }
+  if (c.k === 'b') text += '\n' + indent + '    ';
+  insert(text);
+}
+function onEdit() { errLine = 0; S.code[L.id] = ed.value; save(); refreshEditor(); }
+ed.addEventListener('input', onEdit);
+ed.addEventListener('scroll', () => { hl.scrollLeft = ed.scrollLeft; });
+ed.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); toggleRun(); return; }
+  if (running) return;
+  if (e.key === 'Tab') {
+    e.preventDefault();
+    if (e.shiftKey) { const { ls, ind, p } = lineInfo(), n = Math.min(4, ind.length); if (n) { ed.setSelectionRange(ls, ls + n); insert(''); ed.setSelectionRange(p - n, p - n); } }
+    else insert('    ');
+  } else if (e.key === 'Enter' && !e.shiftKey && !e.altKey) {
+    e.preventDefault();
+    const { v, p, ls, ind } = lineInfo(), before = v.slice(ls, p).replace(/#.*/, '').trimEnd();
+    insert('\n' + ind + (before.endsWith(':') ? '    ' : ''));
+  } else if (e.key === 'Backspace' && ed.selectionStart === ed.selectionEnd) {
+    const { v, p, ls } = lineInfo(), before = v.slice(ls, p);
+    if (before.length >= 4 && /^ +$/.test(before)) { e.preventDefault(); const n = before.length % 4 || 4; ed.setSelectionRange(p - n, p); document.execCommand('delete') || ed.setRangeText('', p - n, p, 'end'); onEdit(); }
+  }
+});
+
+/* ---------- game flow ---------- */
+function say(kind, html, line) {
+  const el = $('#console');
+  el.className = 'console ' + kind;
+  el.innerHTML = (line ? `<button class="lnk" data-line="${line}">Line ${line}</button>` : '') + `<span>${html}</span>`;
+}
+function renderHearts(breakIdx) {
+  const h = hearts();
+  $('#hearts').innerHTML = [0, 1, 2].map(i => `<i class="hrt${i < h ? '' : ' gone'}${i === breakIdx ? ' break' : ''}">${HEART}</i>`).join('');
+  $('#hearts').setAttribute('aria-label', `${h} heart${h === 1 ? '' : 's'} left`);
+  const hb = $('#hintBtn'), hinted = S.hinted[L.id];
+  $('#hint').hidden = !hinted; $('#solBtn').hidden = !hinted; hb.hidden = !!hinted;
+  hb.disabled = h < 2;
+  if (endless) { hb.hidden = true; $('#hint').hidden = true; $('#solBtn').hidden = true; }
+  hb.querySelector('span').textContent = h < 2 ? 'Hints need 2 hearts' : 'Hint (costs 1 heart)';
+}
+function updateHud(v) {
+  const c = $('#crys');
+  c.hidden = !W.total;
+  c.querySelector('b').textContent = `${W.got}/${W.total}`;
+  if (v !== undefined) { const r = $('#room'), dk = L.dark && L.dark[v]; r.hidden = L.maps.length < 2 && !dk; r.textContent = (L.maps.length > 1 ? `Room ${v + 1} of ${L.maps.length}` : 'Room') + (dk ? ' · dark' : ''); }
+  $('#depth').hidden = !endless; $('#depth').textContent = endless ? `Depth ${L.depth}` : '';
+  measureHud();
+}
+function loadVariant(v) {
+  curV = v;
+  W = makeWorld(L.maps[v]);
+  disp = { x: W.x, y: W.y, ang: W.dir * Math.PI / 2, scale: 1, alpha: 1, ox: 0, oy: 0, tilt: 0, hurt: 0, st: 0, sk: 1 };
+  parts = []; bubbles = []; gateFlash = 0;
+  torches = [];
+  for (let j = 0; j < W.h; j++) for (let i = 0; i < W.w; i++)
+    if (W.grid[j][i] === '#' && walkable(tileAt(W, i, j + 1)) && hash(i, j) % 3 === 0 && torches.length < 7 && !torches.some(t => t.j === j && Math.abs(t.i - i) < 3)) torches.push({ i, j });
+  updateHud(v);
+}
+const unlocked = i => i === 0 || !!S.done[LEVELS[i - 1].id] || !!S.done[LEVELS[i].id];
+const totalStars = () => LEVELS.reduce((a, l) => a + (S.done[l.id] || 0), 0);
+function showCard() {
+  const el = $('#ccard');
+  $('#ccN').textContent = endless ? 'Endless Vault' : `Chapter ${L.ch + 1}`; $('#ccT').textContent = endless ? `Depth ${L.depth}` : CHAPTERS[L.ch];
+  el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
+}
+function bestRow() { const b = S.done[L.id] || 0; return b ? `Best: ${[1, 2, 3].map(k => `<span class="${k <= b ? 'on' : ''}">${STAR}</span>`).join('')}` : 'Not solved yet'; }
+function loadLevel(i, forceCard) {
+  stopRun();
+  endless = false;
+  lvIdx = i; L = LEVELS[i]; S.cur = i; save();
+  if (hearts() <= 0) { S.hearts[L.id] = 3; S.code[L.id] = L.starter; delete S.hinted[L.id]; save(); }
+  setupLevel(forceCard || L.ch !== lastCh);
+  lastCh = L.ch;
+}
+function loadEndless(fresh) {
+  stopRun();
+  const E = S.endless;
+  if (fresh || !E.depth) { E.seed = 100000 + Math.floor(Math.random() * 900000); E.depth = 1; E.hearts = 3; E.runs = (E.runs || 0) + 1; }
+  endless = true; lastCh = -1;
+  L = endlessLevel(E.seed, E.depth);
+  save();
+  setupLevel(true);
+}
+function setupLevel(card) {
+  document.body.classList.toggle('endless', endless);
+  dims = { w: Math.max(...L.maps.map(m => Math.max(...m.map(r => r.length)))), h: Math.max(...L.maps.map(m => m.length)) };
+  loadVariant(0);
+  ed.value = S.code[L.id] ?? L.starter;
+  runLine = errLine = 0; refreshEditor();
+  const E = S.endless;
+  $('#chap').textContent = endless ? `Endless Vault · Run ${E.runs} · Seed ${E.seed}` : `Chapter ${L.ch + 1}: ${CHAPTERS[L.ch]} · Level ${lvIdx + 1} of ${LEVELS.length}`;
+  $('#ltitle').textContent = L.title;
+  $('#ltext').textContent = L.story;
+  $('#lgoal').textContent = L.goal + (L.mem ? ` Memory: ${L.mem} lines.` : '');
+  $('#lbest').innerHTML = endless ? `Best depth: ${E.best || 0}` : bestRow();
+  $('#learnT').textContent = L.learn.title;
+  $('#learnP').textContent = L.learn.text;
+  $('#learnC').innerHTML = L.learn.code.split('\n').map(l => hilite(l, new Set(['turn_around']))).join('\n');
+  $('#hint').textContent = L.hint || '';
+  disarm($('#solBtn'), 'Show the solution'); disarm($('#restart'), 'Start code over');
+  renderHearts();
+  $('.nav').hidden = endless;
+  $('#prev').disabled = lvIdx === 0; $('#next').disabled = lvIdx === LEVELS.length - 1 || !unlocked(lvIdx + 1);
+  $('#chips').innerHTML = CHIPS.filter(c => endless || c.from <= lvIdx).map(c => `<button class="chip ${c.k}" data-chip="${CHIPS.indexOf(c)}">${esc(c.t)}</button>`).join('');
+  if (endless) say('info', `Depth ${L.depth}: ${L.maps.length} room${L.maps.length > 1 ? 's' : ''}. ${E.hearts} heart${E.hearts === 1 ? '' : 's'} left for this whole run.`);
+  else say('info', L.maps.length > 1 ? `Your code will be tested in ${L.maps.length} different rooms. Every failed run costs a heart.` : 'Write your code, then press Run. Every failed run costs a heart.');
+  $('#total').querySelector('b').textContent = totalStars();
+  sizeStage();
+  if (!titleOn && card) showCard();
+}
+function setRunUI(on) {
+  running = on;
+  ed.readOnly = on;
+  document.body.classList.toggle('running', on);
+  $('#run span').textContent = on ? 'Stop' : 'Run';
+  $('#run').classList.toggle('stop', on);
+}
+function stopRun() { if (running) stopFlag = true; }
+function resetWorld() {
+  SFX.click(); stopRun();
+  setTimeout(() => { if (!running) { loadVariant(0); runLine = errLine = 0; refreshEditor(); say('info', 'Pixel is back at the start.'); } }, running ? 120 : 0);
+}
+function toggleRun() { audioInit(); if (running) stopFlag = true; else runProgram(); }
+function hit() {
+  const h = $('#housing'), f = $('#flash');
+  h.classList.remove('shake'); f.classList.remove('on'); void h.offsetWidth; h.classList.add('shake'); f.classList.add('on');
+}
+async function runProgram() {
+  if (running) return;
+  let prog;
+  runLine = 0; errLine = 0;
+  try { prog = parse(ed.value); }
+  catch (e) { errLine = e.line || 0; refreshEditor(); SFX.error(); say('err', esc(e.message) + ' <em>(Typos don\'t cost hearts.)</em>', e.line); return; }
+  if (!prog.main.some(s => s.type !== 'def')) { SFX.error(); say('err', 'Your program has no commands to run yet. Write some below your def blocks.'); return; }
+  const n0 = codeLines(ed.value);
+  if (L.mem && n0 > L.mem) { SFX.error(); say('err', `Pixel's memory chip only holds ${L.mem} lines, and your program has ${n0}. Find a shorter rule. (This didn't cost a heart.)`); return; }
+  stopFlag = false; setRunUI(true);
+  if (innerWidth < 820) $('#housing').scrollIntoView({ behavior: REDUCED ? 'auto' : 'smooth', block: 'start' });
+  const n = L.maps.length;
+  let result = { ok: true };
+  for (let v = 0; v < n && result.ok; v++) {
+    loadVariant(v);
+    say('run', n > 1 ? `Testing room ${v + 1} of ${n}…` : 'Running…');
+    await wait(v ? 450 : 200);
+    if (stopFlag) break;
+    result = await runOne(prog, v, n);
+    if (result.ok && v < n - 1) await wait(350);
+  }
+  const stopped = stopFlag;
+  stopFlag = false;
+  runLine = 0;
+  if (stopped) { setRunUI(false); loadVariant(0); refreshEditor(); say('info', 'Stopped. Pixel is back at the start.'); return; }
+  if (!result.ok) {
+    errLine = result.line || 0; refreshEditor();
+    const h = hearts() - 1;
+    if (endless) S.endless.hearts = Math.max(0, h); else S.hearts[L.id] = Math.max(0, h);
+    save();
+    renderHearts(Math.max(0, h)); SFX.hurt(); hit();
+    if (h <= 0) { await wait(650); setRunUI(false); if (endless) endlessOver(result.msg); else gameOver(result.msg); return; }
+    say('err', `${result.msg} <b class="lost">−1 heart, ${h} left.</b>`, result.line);
+    await wait(1100);
+    setRunUI(false);
+    loadVariant(0);
+    return;
+  }
+  setRunUI(false);
+  refreshEditor();
+  say('info', 'Gate opened! Pixel made it through.');
+  if (endless) endlessWin(); else showWin();
+}
+async function runOne(prog, v, n) {
+  const ctx = { steps: 0, funcs: prog.funcs }, gen = exec(prog.main, W, ctx, 0);
+  const pre = n > 1 ? `Room ${v + 1} of ${n}: ` : '';
+  while (true) {
+    let r;
+    try { r = gen.next(); }
+    catch (e) {
+      if (e === WIN) { await animWin(); return { ok: true }; }
+      if (e instanceof CodeError) {
+        runLine = 0; errLine = e.line; refreshEditor();
+        if (e.ev && e.ev.type === 'bump') await animBump(e.ev);
+        else if (e.ev && e.ev.zap) await animZap(e.ev);
+        else { SFX.dud(); bubble('?'); }
+        return { ok: false, msg: pre + esc(e.message), line: e.line };
+      }
+      return { ok: false, msg: 'Something went wrong inside the game: ' + esc(String(e.message || e)) };
+    }
+    if (stopFlag) return { ok: false };
+    if (r.done) {
+      const onGate = W.x === W.ex && W.y === W.ey, left = W.total - W.got;
+      SFX.dud(); bubble('?');
+      return { ok: false, msg: pre + (onGate ? `Pixel reached the gate, but it's still sealed: ${left} crystal${left === 1 ? '' : 's'} left to collect.` : left ? `Pixel ran out of commands before reaching the gate, with ${left} crystal${left === 1 ? '' : 's'} still to collect.` : 'Pixel ran out of commands before reaching the gate.') };
+    }
+    runLine = r.value.line; refreshEditor();
+    await animate(r.value);
+    if (stopFlag) return { ok: false };
+  }
+}
+async function animate(ev) {
+  const d = SPEEDS[S.speed];
+  disp.st = ev.t; disp.sk = 0;
+  if (ev.type === 'move') {
+    if (S.speed < 5) SFX.move();
+    await tween(d, k => { disp.x = ev.fx + (ev.x - ev.fx) * k; disp.y = ev.fy + (ev.y - ev.fy) * k; disp.sk = k; });
+    disp.x = ev.x; disp.y = ev.y;
+    if (ev.sealed) { bubble('Sealed', '#ffb39e'); SFX.dud(); }
+  } else if (ev.type === 'turn') {
+    if (S.speed < 5) SFX.turn();
+    const a0 = Math.round(disp.ang / (Math.PI / 2)) * Math.PI / 2;
+    await tween(d * 0.7, k => { disp.ang = a0 + ev.delta * Math.PI / 2 * k; disp.sk = k; });
+  } else if (ev.type === 'wait') {
+    if (S.speed < 5) SFX.wait(); bubble('wait…', '#e9dcc6');
+    await tween(d * 0.8, k => { disp.sk = k; });
+  } else if (ev.type === 'collect') {
+    SFX.collect(); spawn(ev.x, ev.y - 0.1, 12, C.tq, 'gem', 0.06); updateHud();
+    await tween(d * 0.6, k => { disp.sk = k; });
+    if (ev.open) { gateFlash = 1; bubble('Gate open!', '#b5fff6'); SFX.open(); }
+  } else if (ev.type === 'collect-none') {
+    bubble('Nothing here'); SFX.dud();
+    await tween(d * 0.6, k => { disp.sk = k; });
+  }
+  disp.sk = 1;
+}
+async function animBump(ev) {
+  const d = Math.max(220, SPEEDS[S.speed]);
+  if (ev.wall) {
+    shake = 1; SFX.bump();
+    await tween(d * 0.5, k => { disp.ox = ev.dx * 0.28 * k; disp.oy = ev.dy * 0.28 * k; });
+    spawn(ev.x + ev.dx * 0.45, ev.y + ev.dy * 0.45, 8, '#ffd27a', 'star', 0.07);
+    bubble('Bonk!', '#ffb39e');
+    await tween(d * 0.6, k => { disp.ox = ev.dx * 0.28 * (1 - k); disp.oy = ev.dy * 0.28 * (1 - k); });
+  } else {
+    await tween(d * 0.6, k => { disp.ox = ev.dx * 0.55 * k; disp.oy = ev.dy * 0.55 * k; disp.tilt = (ev.dx || 0.3) * 0.4 * k; });
+    SFX.fall(); bubble('Whoa!', '#ffb39e');
+    await tween(800, k => { disp.oy = ev.dy * 0.55 + k * 1.1; disp.scale = 1 - k * 0.7; disp.alpha = 1 - k; });
+  }
+}
+async function animZap(ev) {
+  await animate(ev);
+  SFX.zap(); shake = 0.8; bubble('Zap!', '#ffb39e');
+  spawn(ev.x ?? W.x, (ev.y ?? W.y) - 0.1, 14, '#ffe08a', 'star', 0.09);
+  await tween(650, k => { disp.hurt = 1 - k * 0.6; disp.ox = (Math.random() - 0.5) * 0.12 * (1 - k); });
+}
+async function animWin() {
+  gateFlash = 1; SFX.win();
+  spawn(W.ex, W.ey - 0.3, 22, C.tq, 'gem', 0.1); spawn(W.ex, W.ey - 0.3, 10, '#ffe2a8', 'star', 0.09);
+  const a0 = disp.ang;
+  await tween(REDUCED ? 200 : 750, k => { disp.ang = a0 + k * Math.PI * 3; disp.scale = 1 - k; });
+}
+
+/* ---------- dialogs ---------- */
+const starRow = (n, cls) => `<div class="stars ${cls || ''}">${[1, 2, 3].map(k => `<span class="${k <= n ? 'on' : ''}">${STAR}</span>`).join('')}</div>`;
+function openDlg(html, after) { onClose = after || null; $('#dlgBody').innerHTML = html; if (!dlg.open) { try { dlg.showModal(); } catch (e) { dlg.setAttribute('open', ''); } } }
+function closeDlg() { if (!dlg.open) return; try { dlg.close(); } catch (e) { dlg.removeAttribute('open'); afterDlg(); } }
+function afterDlg() { const f = onClose; onClose = null; if (f) f(); else if (disp.scale < 1 && !running) loadVariant(0); }
+function showWin() {
+  const st = hearts(), prev = S.done[L.id] || 0;
+  S.done[L.id] = Math.max(prev, st);
+  delete S.hearts[L.id]; delete S.hinted[L.id]; save();
+  $('#total').querySelector('b').textContent = totalStars();
+  const last = lvIdx === LEVELS.length - 1;
+  const tip = st < 3 ? `<p class="tip">You won with ${st} heart${st === 1 ? '' : 's'} left. Win without losing a heart for 3 stars.</p>` : '<p class="tip">Flawless. Not a single heart lost!</p>';
+  let body;
+  if (last && DEMO) body = `${starRow(st, 'big')}<h2>End of the free demo</h2><p>Pixel made it through the first two chapters! The full game has ${FULL_N - LEVELS.length} more levels: decisions, your own commands, shifting mazes and the spike traps of the Deep Vault.</p><p class="tot">${STAR} ${totalStars()} of ${TOTAL} stars</p><p>Get the full game on this game's itch.io page.</p><div class="row"><button class="btn run" data-act="map">See all levels</button><button class="btn ghost" data-act="close">Keep playing</button></div>`;
+  else if (last) body = `${starRow(st, 'big')}<h2>The Great Compiler wakes</h2><p>The core slides into place. Deep in the Archive, the Great Compiler hums, flickers, and roars back to life, rebuilt from the crystals you gathered and the programs you wrote. Pixel did the rolling. You did the thinking.</p><p class="tot">${STAR} ${totalStars()} of ${TOTAL} stars collected</p>${tip}<div class="row"><button class="btn run" data-act="map">See all levels</button><button class="btn ghost" data-act="close">Keep improving</button></div>`;
+  else body = `${starRow(st, 'big')}<h2>Gate opened!</h2>${tip}<div class="row"><button class="btn run" data-act="next">Next level</button><button class="btn ghost" data-act="close">Replay this level</button></div>`;
+  openDlg(`<div class="win">${body}</div>`, () => { loadVariant(0); refreshEditor(); });
+  const spans = [...$('#dlgBody').querySelectorAll('.stars.big span')];
+  spans.forEach((sp, i) => setTimeout(() => { sp.classList.add('pop'); if (i < st) SFX.star(i); else SFX.dud(); }, 350 + i * 380));
+  $('#next').disabled = last;
+  $('#lbest').innerHTML = bestRow();
+  renderHearts();
+}
+function gameOver(msg) {
+  SFX.over();
+  openDlg(`<div class="over">${BROKEN}<h2>Game over</h2><p>Pixel ran out of hearts. This level starts over from scratch: your code is wiped and Pixel gets 3 new hearts.</p><p class="tip">Last mistake: ${msg}</p><div class="row"><button class="btn run" data-act="retry">Try again</button></div></div>`, doRetry);
+}
+function endlessWin() {
+  const E = S.endless, d = E.depth, prevBest = E.best || 0;
+  E.best = Math.max(prevBest, d); E.depth = d + 1;
+  let bonus = false;
+  if (d % 5 === 0 && E.hearts < 3) { E.hearts++; bonus = true; }
+  save();
+  openDlg(`<div class="win"><p class="depthbig">Depth ${d}</p><h2>Cleared!</h2>${bonus ? `<p class="bonus">${HEART} Bonus heart! Every 5 depths you win one back.</p>` : ''}${d > prevBest && prevBest > 0 ? '<p class="bonus">New best depth!</p>' : ''}<p class="tip">Hearts: ${E.hearts} of 3 · Best depth: ${E.best} · Next: depth ${d + 1}</p><div class="row"><button class="btn run" data-act="deeper">Go deeper</button><button class="btn ghost" data-act="title">Rest at the title screen</button></div></div>`, () => loadEndless(false));
+  if (bonus) setTimeout(() => SFX.open(), 500);
+  renderHearts();
+}
+function endlessOver(msg) {
+  const E = S.endless, reached = E.depth, cleared = reached - 1, record = cleared > 0 && cleared >= (E.best || 0);
+  E.best = Math.max(E.best || 0, cleared); E.depth = 0; E.hearts = 3; save();
+  SFX.over();
+  openDlg(`<div class="over">${BROKEN}<h2>The Vault wins</h2><p>Pixel fell at depth ${reached}. ${cleared ? `You cleared ${cleared} depth${cleared === 1 ? '' : 's'}${record ? ', a new record!' : '.'}` : ''} Best ever: depth ${E.best}.</p><p class="tip">Last mistake: ${msg}</p><p>Your code is kept. Make it tougher and dive again.</p><div class="row"><button class="btn run" data-act="newrun">New run</button><button class="btn ghost" data-act="story">Back to the story</button></div></div>`, () => loadEndless(true));
+}
+function doRetry() {
+  S.hearts[L.id] = 3; delete S.hinted[L.id]; S.code[L.id] = L.starter; save();
+  loadLevel(lvIdx);
+  say('info', 'Fresh start: 3 hearts, starter code. Think before you run!');
+}
+function showMap() {
+  SFX.click();
+  const html = `<h2>The Sunken Archive</h2><p class="tot">${STAR} ${totalStars()} of ${TOTAL} stars</p>` + CHAPTERS.map((name, c) => {
+    const items = LEVELS.map((l, i) => l.ch !== c ? '' : `<button class="lv${i === lvIdx ? ' cur' : ''}" data-lv="${i}" ${unlocked(i) ? '' : 'disabled'}><b>${i + 1}</b><span>${esc(l.title)}</span>${unlocked(i) ? starRow(S.done[l.id] || 0) : `<i class="lock">${LOCK}Locked</i>`}</button>`).join('');
+    return items ? `<h3>Chapter ${c + 1}: ${name}</h3><div class="lvgrid">${items}</div>` : (DEMO ? `<h3>Chapter ${c + 1}: ${name}</h3><p class="tip">In the full game.</p>` : '');
+  }).join('') + `<h3>Endless Vault</h3><div class="lvgrid"><button class="lv inf" data-act="endless" ${DEMO ? 'disabled' : ''}><b>∞</b><span>${DEMO ? 'Full game only' : S.endless.depth ? `Continue run at depth ${S.endless.depth}` : 'Start a run'}</span><i class="lock">Best depth: ${S.endless.best || 0}</i></button></div><div class="row"><button class="btn ghost" data-act="close">Close</button></div>`;
+  openDlg(html);
+}
+function disarm(b, label) { b.dataset.armed = ''; b.textContent = label; }
+function twoStep(b, armedLabel, fn) { if (b.dataset.armed) { fn(); return; } b.dataset.armed = '1'; b.textContent = armedLabel; }
+
+/* ---------- title screen ---------- */
+function titleStats() {
+  const any = Object.keys(S.done).length > 0;
+  $('#enter').textContent = any ? 'Continue' : 'Enter the Archive';
+  $('#newgame').hidden = !any;
+  const eb = $('#endlessBtn');
+  eb.disabled = DEMO;
+  eb.querySelector('span').textContent = DEMO ? 'Endless Vault: full game only' : S.endless.depth ? `Endless Vault: depth ${S.endless.depth}` : 'Endless Vault';
+  $('#tstat').innerHTML = (S.endless.best ? `Best endless depth ${S.endless.best} · ` : '') + (any ? `${STAR} ${totalStars()} of ${TOTAL} stars · Level ${Math.min(S.cur, LEVELS.length - 1) + 1} of ${LEVELS.length}` : `${LEVELS.length} levels · ${DEMO ? 'free demo' : '5 chapters'} · 3 hearts per level`);
+}
+function showTitle() { titleStats(); const t = $('#title'); t.hidden = false; void t.offsetWidth; t.classList.remove('gone'); titleOn = true; sizeTitle(); }
+function enterGame() {
+  if (!titleOn) return;
+  audioInit(); SFX.start();
+  titleOn = false;
+  const t = $('#title');
+  t.classList.add('gone');
+  setTimeout(() => { t.hidden = true; }, REDUCED ? 0 : 600);
+  sizeStage();
+  setTimeout(showCard, REDUCED ? 0 : 350);
+}
+
+/* ---------- wiring ---------- */
+function start(data) {
+  let st = data && data.done ? data : null;
+  if (!st) { try { st = JSON.parse(localStorage.getItem('codequest-v1') || 'null'); } catch (e) { st = null; } }
+  if (st) Object.assign(S, { done: st.done || {}, code: st.code || {}, hearts: st.hearts || {}, hinted: st.hinted || {}, cur: st.cur || 0, speed: Math.min(st.speed ?? 2, 5), sound: st.sound ?? 2, endless: Object.assign({ best: 0, seed: 0, depth: 0, hearts: 3, runs: 0 }, st.endless || {}) });
+  $('#speed').value = S.speed;
+  $('#totalMax').textContent = TOTAL;
+  $('#speed').addEventListener('input', e => { S.speed = +e.target.value; save(); });
+  $('#run').addEventListener('click', toggleRun);
+  $('#reset').addEventListener('click', resetWorld);
+  $('#mapBtn').addEventListener('click', showMap);
+  $('#soundBtn').addEventListener('click', () => { audioInit(); S.sound = (S.sound + 2) % 3; save(); applySound(); SFX.click(); });
+  $('#homeBtn').addEventListener('click', () => { if (!running) showTitle(); });
+  $('#endlessBtn').addEventListener('click', () => { if (DEMO) return; loadEndless(false); enterGame(); });
+  $('#prev').addEventListener('click', () => { SFX.click(); lvIdx > 0 && loadLevel(lvIdx - 1); });
+  $('#next').addEventListener('click', () => { SFX.click(); lvIdx < LEVELS.length - 1 && unlocked(lvIdx + 1) && loadLevel(lvIdx + 1); });
+  $('#chips').addEventListener('click', e => { const b = e.target.closest('[data-chip]'); if (b) insertChip(CHIPS[+b.dataset.chip]); });
+  $('#console').addEventListener('click', e => {
+    const b = e.target.closest('[data-line]'); if (!b) return;
+    const n = +b.dataset.line, lines = ed.value.split('\n'), pos = lines.slice(0, n - 1).join('\n').length + (n > 1 ? 1 : 0);
+    ed.focus(); ed.setSelectionRange(pos, pos + (lines[n - 1] || '').length);
+  });
+  $('#hintBtn').addEventListener('click', () => {
+    if (running || hearts() < 2) return;
+    S.hearts[L.id] = hearts() - 1; S.hinted[L.id] = true; save();
+    renderHearts(hearts()); SFX.hurt();
+    say('info', 'Hint unlocked for 1 heart. It\'s below the editor.');
+  });
+  $('#solBtn').addEventListener('click', e => twoStep(e.currentTarget, 'Sure? You\'ll drop to 1 heart', () => {
+    if (running) return;
+    S.hearts[L.id] = Math.min(hearts(), 1); save(); renderHearts(); SFX.hurt();
+    ed.value = L.solution; onEdit(); disarm(e.currentTarget, 'Show the solution');
+    say('info', 'Here is one way to solve it. Read it line by line, then press Run.');
+  }));
+  $('#restart').addEventListener('click', e => twoStep(e.currentTarget, 'Erase my code for this level?', () => { if (running) return; ed.value = L.starter; onEdit(); disarm(e.currentTarget, 'Start code over'); }));
+  $('#enter').addEventListener('click', () => { if (endless) { let i = Math.min(S.cur || 0, LEVELS.length - 1); while (i > 0 && !unlocked(i)) i--; loadLevel(i); } enterGame(); });
+  $('#newgame').addEventListener('click', e => twoStep(e.currentTarget, 'Erase all progress?', () => {
+    S.done = {}; S.code = {}; S.hearts = {}; S.hinted = {}; S.cur = 0; S.endless = { best: 0, seed: 0, depth: 0, hearts: 3, runs: 0 }; save();
+    disarm(e.currentTarget, 'New game'); loadLevel(0); lastCh = 0; titleStats(); enterGame();
+  }));
+  dlg.addEventListener('click', e => {
+    const lv = e.target.closest('[data-lv]'), a = e.target.closest('[data-act]');
+    if (lv && !lv.disabled) { onClose = () => loadLevel(+lv.dataset.lv); closeDlg(); }
+    else if (a && !a.disabled) {
+      const act = a.dataset.act; SFX.click();
+      if (act === 'next') onClose = () => loadLevel(lvIdx + 1);
+      else if (act === 'map') onClose = showMap;
+      else if (act === 'endless') onClose = () => loadEndless(false);
+      else if (act === 'story') onClose = () => { let i = Math.min(S.cur || 0, LEVELS.length - 1); while (i > 0 && !unlocked(i)) i--; loadLevel(i, true); };
+      else if (act === 'title') { const f = onClose; onClose = () => { if (f) f(); showTitle(); }; }
+      closeDlg();
+    } else if (e.target === dlg) closeDlg();
+  });
+  dlg.addEventListener('close', afterDlg);
+  document.addEventListener('keydown', e => {
+    if (titleOn && e.key === 'Enter' && !document.activeElement?.closest?.('.tbtns')) { e.preventDefault(); enterGame(); return; }
+    if (e.key === 'Escape' && running) stopFlag = true;
+    else if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && document.activeElement !== ed && !dlg.open) { e.preventDefault(); toggleRun(); }
+  });
+  document.addEventListener('pointerdown', () => { if (AU.ctx && AU.ctx.state === 'suspended') AU.ctx.resume().catch(() => { }); });
+  const ro = new ResizeObserver(() => { sizeStage(); if (titleOn) sizeTitle(); });
+  ro.observe($('#stage')); ro.observe($('#title'));
+  let i = Math.min(S.cur || 0, LEVELS.length - 1);
+  while (i > 0 && !unlocked(i)) i--;
+  loadLevel(i);
+  applySound(); titleStats(); sizeTitle();
+  requestAnimationFrame(frame);
+}
+window.claude?.hot?.snapshot?.(() => S);
+if (window.claude?.hot?.ready) window.claude.hot.ready(start); else start(window.claude?.hot?.data ?? {});
+
+}
+</script>
+</body>
+</html>
